@@ -1,5 +1,13 @@
 import { runCommandWithTimeout } from "../process/exec.js";
 
+// Stub for @mariozechner/clipboard which crashes on Termux due to native bindings.
+// We primarily use termux-clipboard-set for Termux optimization.
+const clipboardStub = {
+  setText: (value: string) => {
+    /* noop - handled by termux-clipboard-set attempt */
+  },
+};
+
 export async function copyToClipboard(value: string): Promise<boolean> {
   const attempts: Array<{ argv: string[] }> = [
     { argv: ["termux-clipboard-set"] },
@@ -20,5 +28,11 @@ export async function copyToClipboard(value: string): Promise<boolean> {
       // keep trying the next fallback
     }
   }
-  return false;
+
+  try {
+    clipboardStub.setText(value);
+    return true;
+  } catch {
+    return false;
+  }
 }

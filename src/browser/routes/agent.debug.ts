@@ -6,6 +6,7 @@ import type { BrowserRouteContext } from "../server-context.js";
 import { handleRouteError, readBody, requirePwAi, resolveProfileContext } from "./agent.shared.js";
 import { toBoolean, toStringOrEmpty } from "./utils.js";
 import type { BrowserRouteRegistrar } from "./types.js";
+import { resolveMoltbotTempDir } from "../../config/paths.js";
 
 export function registerBrowserAgentDebugRoutes(
   app: BrowserRouteRegistrar,
@@ -112,7 +113,7 @@ export function registerBrowserAgentDebugRoutes(
       const pw = await requirePwAi(res, "trace stop");
       if (!pw) return;
       const id = crypto.randomUUID();
-      const dir = "/tmp/moltbot";
+      const dir = resolveMoltbotTempDir();
       await fs.mkdir(dir, { recursive: true });
       const tracePath = out.trim() || path.join(dir, `browser-trace-${id}.zip`);
       await pw.traceStopViaPlaywright({

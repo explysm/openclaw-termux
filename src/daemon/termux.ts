@@ -74,6 +74,10 @@ export async function installTermuxService({
 ${serviceDescription ? `# ${serviceDescription}` : ""}
 ${envHeader}
 ${workingDirectory ? `cd "${workingDirectory}"` : ""}
+# Ensure the process stays alive when the screen is off
+if command -v termux-wake-lock > /dev/null; then
+  termux-wake-lock
+fi
 exec ${programArguments.join(" ")} 2>&1
 `;
 

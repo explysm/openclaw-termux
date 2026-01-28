@@ -39,6 +39,7 @@ import { noteSourceInstallIssues } from "./doctor-install.js";
 import {
   noteMacLaunchAgentOverrides,
   noteMacLaunchctlGatewayEnvOverrides,
+  noteTermuxOptimizationIssues,
 } from "./doctor-platform-notes.js";
 import { createDoctorPrompter, type DoctorOptions } from "./doctor-prompter.js";
 import { maybeRepairSandboxImages, noteSandboxScopeWarnings } from "./doctor-sandbox.js";
@@ -189,6 +190,7 @@ export async function doctorCommand(
   await maybeRepairGatewayServiceConfig(cfg, resolveMode(cfg), runtime, prompter);
   await noteMacLaunchAgentOverrides();
   await noteMacLaunchctlGatewayEnvOverrides(cfg);
+  await noteTermuxOptimizationIssues();
 
   await noteSecurityWarnings(cfg);
 

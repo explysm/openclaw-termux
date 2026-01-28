@@ -1,6 +1,6 @@
 {
-  "name": "moltbot",
-  "version": "2026.1.27-beta.1",
+  "name": "moltbot-termux",
+  "version": "2026.1.27-1",
   "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
   "type": "module",
   "main": "dist/index.js",
@@ -249,7 +249,8 @@
     "overrides": {
       "@sinclair/typebox": "0.34.47",
       "hono": "4.11.4",
-      "tar": "7.5.4"
+      "tar": "7.5.4",
+      "@mariozechner/clipboard": "link:./packages/clipboard-stub"
     }
   },
   "vitest": {

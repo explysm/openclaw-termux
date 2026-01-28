@@ -18,11 +18,12 @@ import {
   requireRef,
   toAIFriendlyError,
 } from "./pw-tools-core.shared.js";
+import { resolveMoltbotTempDir } from "../config/paths.js";
 
 function buildTempDownloadPath(fileName: string): string {
   const id = crypto.randomUUID();
   const safeName = fileName.trim() ? fileName.trim() : "download.bin";
-  return path.join("/tmp/moltbot/downloads", `${id}-${safeName}`);
+  return path.join(resolveMoltbotTempDir(), "downloads", `${id}-${safeName}`);
 }
 
 function createPageDownloadWaiter(page: Page, timeoutMs: number) {

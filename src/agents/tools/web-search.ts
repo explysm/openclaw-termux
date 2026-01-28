@@ -17,11 +17,12 @@ import {
   writeCache,
 } from "./web-shared.js";
 
-const SEARCH_PROVIDERS = ["brave", "perplexity"] as const;
+const SEARCH_PROVIDERS = ["brave", "perplexity", "duckduckgo"] as const;
 const DEFAULT_SEARCH_COUNT = 5;
 const MAX_SEARCH_COUNT = 10;
 
 const BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
+const DUCKDUCKGO_LITE_ENDPOINT = "https://lite.duckduckgo.com/lite/";
 const DEFAULT_PERPLEXITY_BASE_URL = "https://openrouter.ai/api/v1";
 const PERPLEXITY_DIRECT_BASE_URL = "https://api.perplexity.ai";
 const DEFAULT_PERPLEXITY_MODEL = "perplexity/sonar-pro";
@@ -306,10 +307,81 @@ async function runPerplexitySearch(params: {
   return { content, citations };
 }
 
+async function runDuckDuckGoSearch(params: {
+  query: string;
+  count: number;
+  timeoutSeconds: number;
+}): Promise<Array<{ title: string; url: string; description: string; siteName?: string }>> {
+  const res = await fetch(DUCKDUCKGO_LITE_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+    body: new URLSearchParams({ q: params.query }).toString(),
+    signal: withTimeout(undefined, params.timeoutSeconds * 1000),
+  });
+
+  if (!res.ok) {
+    const detail = await readResponseText(res);
+    throw new Error(`DuckDuckGo error (${res.status}): ${detail || res.statusText}`);
+  }
+
+  const html = await res.text();
+  const { parseHTML } = await import("linkedom");
+  const { document } = parseHTML(html);
+
+  const results: Array<{ title: string; url: string; description: string; siteName?: string }> = [];
+  const rows = document.querySelectorAll("table:nth-of-type(3) tr");
+
+  // DuckDuckGo Lite structure:
+  // Usually 3-row blocks per result:
+  // 1. Title/Link
+  // 2. Snippet/Description
+  // 3. Metadata (URL/Source)
+  // We iterate and extract.
+  let currentResult: { title: string; url: string; description: string; siteName?: string } | null =
+    null;
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const link = row.querySelector("a.result-link");
+    if (link) {
+      if (currentResult && currentResult.title && currentResult.url) {
+        results.push(currentResult);
+      }
+      currentResult = {
+        title: link.textContent?.trim() ?? "",
+        url: link.getAttribute("href") ?? "",
+        description: "",
+      };
+      // Try to get description from next row
+      const nextRow = rows[i + 1];
+      if (nextRow) {
+        const desc = nextRow.querySelector(".result-snippet");
+        if (desc) {
+          currentResult.description = desc.textContent?.trim() ?? "";
+          i += 1;
+        }
+      }
+      if (currentResult.url) {
+        currentResult.siteName = resolveSiteName(currentResult.url);
+      }
+    }
+    if (results.length >= params.count) break;
+  }
+  if (currentResult && currentResult.title && currentResult.url && results.length < params.count) {
+    results.push(currentResult);
+  }
+
+  return results;
+}
+
 async function runWebSearch(params: {
   query: string;
   count: number;
-  apiKey: string;
+  apiKey?: string;
   timeoutSeconds: number;
   cacheTtlMs: number;
   provider: (typeof SEARCH_PROVIDERS)[number];
@@ -330,10 +402,27 @@ async function runWebSearch(params: {
 
   const start = Date.now();
 
+  if (params.provider === "duckduckgo") {
+    const results = await runDuckDuckGoSearch({
+      query: params.query,
+      count: params.count,
+      timeoutSeconds: params.timeoutSeconds,
+    });
+    const payload = {
+      query: params.query,
+      provider: params.provider,
+      count: results.length,
+      tookMs: Date.now() - start,
+      results,
+    };
+    writeCache(SEARCH_CACHE, cacheKey, payload, params.cacheTtlMs);
+    return payload;
+  }
+
   if (params.provider === "perplexity") {
     const { content, citations } = await runPerplexitySearch({
       query: params.query,
-      apiKey: params.apiKey,
+      apiKey: params.apiKey ?? "",
       baseUrl: params.perplexityBaseUrl ?? DEFAULT_PERPLEXITY_BASE_URL,
       model: params.perplexityModel ?? DEFAULT_PERPLEXITY_MODEL,
       timeoutSeconds: params.timeoutSeconds,
@@ -375,7 +464,7 @@ async function runWebSearch(params: {
     method: "GET",
     headers: {
       Accept: "application/json",
-      "X-Subscription-Token": params.apiKey,
+      "X-Subscription-Token": params.apiKey ?? "",
     },
     signal: withTimeout(undefined, params.timeoutSeconds * 1000),
   });
@@ -416,10 +505,15 @@ export function createWebSearchTool(options?: {
   const provider = resolveSearchProvider(search);
   const perplexityConfig = resolvePerplexityConfig(search);
 
-  const description =
+  let description =
     provider === "perplexity"
       ? "Search the web using Perplexity Sonar (direct or via OpenRouter). Returns AI-synthesized answers with citations from real-time web search."
       : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.";
+
+  if (provider === "duckduckgo") {
+    description =
+      "Search the web using DuckDuckGo. No API key required. Returns titles, URLs, and snippets.";
+  }
 
   return {
     label: "Web Search",
@@ -432,7 +526,7 @@ export function createWebSearchTool(options?: {
       const apiKey =
         provider === "perplexity" ? perplexityAuth?.apiKey : resolveSearchApiKey(search);
 
-      if (!apiKey) {
+      if (!apiKey && provider !== "duckduckgo") {
         return jsonResult(missingSearchKeyPayload(provider));
       }
       const params = args as Record<string, unknown>;
@@ -446,7 +540,7 @@ export function createWebSearchTool(options?: {
       if (rawFreshness && provider !== "brave") {
         return jsonResult({
           error: "unsupported_freshness",
-          message: "freshness is only supported by the Brave web_search provider.",
+          message: `freshness is only supported by the Brave web_search provider (current: ${provider}).`,
           docs: "https://docs.molt.bot/tools/web",
         });
       }

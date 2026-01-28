@@ -27,10 +27,25 @@ function ensureExperimentalWarningSuppressed(): boolean {
   if (isTruthyEnvValue(process.env.CLAWDBOT_NO_RESPAWN)) return false;
   if (isTruthyEnvValue(process.env.CLAWDBOT_NODE_OPTIONS_READY)) return false;
   const nodeOptions = process.env.NODE_OPTIONS ?? "";
-  if (hasExperimentalWarningSuppressed(nodeOptions)) return false;
+  
+  const hasSuppressed = hasExperimentalWarningSuppressed(nodeOptions);
+  const isTermux = Boolean(process.env.TERMUX_VERSION);
+  const hasMemoryLimit = nodeOptions.includes("--max-old-space-size");
+  
+  if (hasSuppressed && (!isTermux || hasMemoryLimit)) return false;
 
   process.env.CLAWDBOT_NODE_OPTIONS_READY = "1";
-  process.env.NODE_OPTIONS = `${nodeOptions} ${EXPERIMENTAL_WARNING_FLAG}`.trim();
+  
+  let newOptions = nodeOptions;
+  if (!hasSuppressed) {
+    newOptions = `${newOptions} ${EXPERIMENTAL_WARNING_FLAG}`.trim();
+  }
+  if (isTermux && !hasMemoryLimit) {
+    // Cap memory for background processes on mobile (1GB)
+    newOptions = `${newOptions} --max-old-space-size=1024`.trim();
+  }
+  
+  process.env.NODE_OPTIONS = newOptions;
 
   const child = spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
     stdio: "inherit",

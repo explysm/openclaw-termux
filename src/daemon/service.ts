@@ -29,6 +29,7 @@ import {
 import {
   installTermuxService,
   isTermuxServiceLoaded,
+  readTermuxServiceCommand,
   readTermuxServiceRuntime,
   restartTermuxService,
   stopTermuxService,

@@ -218,3 +218,16 @@ export function resolveGatewayPort(
   }
   return DEFAULT_GATEWAY_PORT;
 }
+
+/**
+ * Temporary directory for logs, downloads, and ephemeral locks.
+ * On Android (Termux), we use a directory within the home folder to avoid permission issues.
+ * On other platforms, we pin to /tmp for cross-app compatibility (e.g. macOS Debug UI).
+ */
+export function resolveMoltbotTempDir(env: NodeJS.ProcessEnv = process.env): string {
+  const isAndroid = process.platform === "android" || Boolean(env.TERMUX_VERSION);
+  if (isAndroid) {
+    return path.join(os.homedir(), ".moltbot", "tmp");
+  }
+  return "/tmp/moltbot";
+}

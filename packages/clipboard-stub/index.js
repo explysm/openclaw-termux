@@ -1,0 +1,20 @@
+module.exports = {
+  availableFormats: () => [],
+  getText: () => "",
+  setText: () => {},
+  hasText: () => false,
+  getImageBinary: () => null,
+  getImageBase64: () => null,
+  setImageBinary: () => {},
+  setImageBase64: () => {},
+  hasImage: () => false,
+  getHtml: () => "",
+  setHtml: () => {},
+  hasHtml: () => false,
+  getRtf: () => "",
+  setRtf: () => {},
+  hasRtf: () => false,
+  clear: () => {},
+  watch: () => {},
+  callThreadsafeFunction: () => {}
+};

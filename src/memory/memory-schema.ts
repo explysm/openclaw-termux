@@ -6,6 +6,10 @@ export function ensureMemoryIndexSchema(params: {
   ftsTable: string;
   ftsEnabled: boolean;
 }): { ftsAvailable: boolean; ftsError?: string } {
+  // Optimization for performance and concurrency, especially on mobile/flash storage.
+  params.db.exec("PRAGMA journal_mode = WAL;");
+  params.db.exec("PRAGMA synchronous = NORMAL;");
+
   params.db.exec(`
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,

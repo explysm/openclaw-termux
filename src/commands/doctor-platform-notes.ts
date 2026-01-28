@@ -81,3 +81,29 @@ export async function noteMacLaunchctlGatewayEnvOverrides(
 
   (deps?.noteFn ?? note)(lines.join("\n"), "Gateway (macOS)");
 }
+
+export async function noteTermuxOptimizationIssues() {
+  if (!Boolean(process.env.TERMUX_VERSION)) return;
+
+  const warnings: string[] = [];
+
+  try {
+    await execFileAsync("which", ["termux-notification"]);
+  } catch {
+    warnings.push(
+      "- termux-api not found. Install it for status notifications: pkg install termux-api",
+    );
+  }
+
+  try {
+    await execFileAsync("which", ["sv-enable"]);
+  } catch {
+    warnings.push(
+      "- termux-services not found. Background gateway support requires it: pkg install termux-services",
+    );
+  }
+
+  if (warnings.length > 0) {
+    note(warnings.join("\n"), "Termux Optimizations");
+  }
+}

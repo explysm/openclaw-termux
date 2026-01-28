@@ -13,6 +13,7 @@ import { getChildLogger, toPinoLikeLogger } from "../logging.js";
 import { ensureDir, resolveUserPath } from "../utils.js";
 import { VERSION } from "../version.js";
 import { formatCliCommand } from "../cli/command-format.js";
+import { isTermux, sendTermuxNotification } from "../infra/termux-api.js";
 
 import {
   maybeRestoreCredsFromBackup,
@@ -134,6 +135,14 @@ export async function createWaSocket(
         }
         if (connection === "close") {
           const status = getStatusCode(lastDisconnect?.error);
+          if (isTermux()) {
+            void sendTermuxNotification({
+              title: "Moltbot WhatsApp",
+              content: `WhatsApp disconnected (${status ?? "unknown"})`,
+              id: "moltbot-whatsapp",
+              priority: "normal",
+            });
+          }
           if (status === DisconnectReason.loggedOut) {
             console.error(
               danger(
@@ -142,8 +151,18 @@ export async function createWaSocket(
             );
           }
         }
-        if (connection === "open" && verbose) {
-          console.log(success("WhatsApp Web connected."));
+        if (connection === "open") {
+          if (verbose) {
+            console.log(success("WhatsApp Web connected."));
+          }
+          if (isTermux()) {
+            void sendTermuxNotification({
+              title: "Moltbot WhatsApp",
+              content: "WhatsApp connected",
+              id: "moltbot-whatsapp",
+              priority: "low",
+            });
+          }
         }
       } catch (err) {
         sessionLogger.error({ error: String(err) }, "connection.update handler error");

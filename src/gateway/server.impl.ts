@@ -69,6 +69,7 @@ import { logGatewayStartup } from "./server-startup-log.js";
 import { startGatewayTailscaleExposure } from "./server-tailscale.js";
 import { loadGatewayTlsRuntime } from "./server/tls.js";
 import { createWizardSessionTracker } from "./server-wizard-sessions.js";
+import { isTermux, sendTermuxNotification } from "../infra/termux-api.js";
 import { attachGatewayWsHandlers } from "./server-ws-runtime.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
@@ -483,6 +484,14 @@ export async function startGatewayServer(
     log,
     isNixMode,
   });
+  if (isTermux()) {
+    void sendTermuxNotification({
+      title: "Moltbot Gateway",
+      content: `Gateway started on port ${port}`,
+      id: "moltbot-gateway",
+      priority: "low",
+    });
+  }
   scheduleGatewayUpdateCheck({ cfg: cfgAtStart, log, isNixMode });
   const tailscaleCleanup = await startGatewayTailscaleExposure({
     tailscaleMode,
@@ -571,6 +580,14 @@ export async function startGatewayServer(
 
   return {
     close: async (opts) => {
+      if (isTermux()) {
+        void sendTermuxNotification({
+          title: "Moltbot Gateway",
+          content: `Gateway stopped${opts?.reason ? `: ${opts.reason}` : ""}`,
+          id: "moltbot-gateway",
+          priority: "low",
+        });
+      }
       if (diagnosticsEnabled) {
         stopDiagnosticHeartbeat();
       }

@@ -60,12 +60,21 @@ function filterOutPartialTargets(targets, partialTargets) {
 function resolveOxfmtCommand(repoRoot) {
   const binName = process.platform === "win32" ? "oxfmt.cmd" : "oxfmt";
   const local = path.join(repoRoot, "node_modules", ".bin", binName);
-  if (fs.existsSync(local)) {
+  
+  const isFunctional = (cmd) => {
+    try {
+      const result = spawnSync(cmd, ["--version"], { stdio: "ignore" });
+      return result.status === 0;
+    } catch {
+      return false;
+    }
+  };
+
+  if (fs.existsSync(local) && isFunctional(local)) {
     return { command: local, args: [] };
   }
 
-  const result = spawnSync("oxfmt", ["--version"], { stdio: "ignore" });
-  if (result.status === 0) {
+  if (isFunctional("oxfmt")) {
     return { command: "oxfmt", args: [] };
   }
 

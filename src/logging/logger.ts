@@ -9,10 +9,10 @@ import type { ConsoleStyle } from "./console.js";
 import { type LogLevel, levelToMinLevel, normalizeLogLevel } from "./levels.js";
 import { readLoggingConfig } from "./config.js";
 import { loggingState } from "./state.js";
+import { resolveMoltbotTempDir } from "../config/paths.js";
 
-// Pin to /tmp so mac Debug UI and docs match; os.tmpdir() can be a per-user
-// randomized path on macOS which made the “Open log” button a no-op.
-export const DEFAULT_LOG_DIR = "/tmp/moltbot";
+// Cross-platform temporary directory (home-relative on Android/Termux).
+export const DEFAULT_LOG_DIR = resolveMoltbotTempDir();
 export const DEFAULT_LOG_FILE = path.join(DEFAULT_LOG_DIR, "moltbot.log"); // legacy single-file path
 
 const LOG_PREFIX = "moltbot";
