@@ -94,31 +94,37 @@ async function promptWebToolsConfig(
 ): Promise<MoltbotConfig> {
   const existingSearch = nextConfig.tools?.web?.search;
   const existingFetch = nextConfig.tools?.web?.fetch;
-  const hasSearchKey = Boolean(existingSearch?.apiKey);
 
   note(
     [
       "Web search lets your agent look things up online using the `web_search` tool.",
-      "It requires a Brave Search API key (you can store it in the config or set BRAVE_API_KEY in the Gateway environment).",
+      "Supported providers: Brave Search (requires API key) or DuckDuckGo (free, no key).",
       "Docs: https://docs.molt.bot/tools/web",
     ].join("\n"),
     "Web search",
   );
 
-  const enableSearch = guardCancel(
-    await confirm({
-      message: "Enable web_search (Brave Search)?",
-      initialValue: existingSearch?.enabled ?? hasSearchKey,
+  const provider = guardCancel(
+    await select({
+      message: "Web search provider",
+      options: [
+        { value: "duckduckgo", label: "DuckDuckGo", hint: "Free, no API key required" },
+        { value: "brave", label: "Brave Search", hint: "High quality, requires API key" },
+        { value: "none", label: "None", hint: "Disable web search" },
+      ],
+      initialValue: existingSearch?.enabled === false ? "none" : (existingSearch?.provider ?? "duckduckgo"),
     }),
     runtime,
-  );
+  ) as "brave" | "duckduckgo" | "none";
 
-  let nextSearch = {
+  let nextSearch: any = {
     ...existingSearch,
-    enabled: enableSearch,
+    enabled: provider !== "none",
+    provider: provider !== "none" ? provider : (existingSearch?.provider ?? "brave"),
   };
 
-  if (enableSearch) {
+  if (provider === "brave") {
+    const hasSearchKey = Boolean(nextSearch.apiKey);
     const keyInput = guardCancel(
       await text({
         message: hasSearchKey
@@ -131,11 +137,10 @@ async function promptWebToolsConfig(
     const key = String(keyInput ?? "").trim();
     if (key) {
       nextSearch = { ...nextSearch, apiKey: key };
-    } else if (!hasSearchKey) {
+    } else if (!hasSearchKey && !process.env.BRAVE_API_KEY) {
       note(
         [
-          "No key stored yet, so web_search will stay unavailable.",
-          "Store a key here or set BRAVE_API_KEY in the Gateway environment.",
+          "No Brave key provided yet. web_search may fail unless BRAVE_API_KEY is set in environment.",
           "Docs: https://docs.molt.bot/tools/web",
         ].join("\n"),
         "Web search",
