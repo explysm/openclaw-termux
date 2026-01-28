@@ -49,8 +49,8 @@ Model note: while any model is supported, I strongly recommend **Anthropic Pro/M
 Runtime: **Node ≥22**.
 
 ```bash
-npm install -g moltbot@latest
-# or: pnpm add -g moltbot@latest
+npm install -g moltbot-termux
+# or: pnpm add -g moltbot-termux
 
 moltbot onboard --install-daemon
 ```
