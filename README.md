@@ -46,17 +46,66 @@ Model note: while any model is supported, I strongly recommend **Anthropic Pro/M
 
 ## Install (recommended)
 
+**Using install script:**
+```bash
+curl -s https://explysm.github.io/moltbot-termux/install.sh | sh
+```
+This script handles:
+- Node 22
+- npm
+- pnpm
+- moltbot-termux
+- Clipboard fix
+
+**Using NPM: (Not recommended, requires manual clipboard fix)**
+
 Runtime: **Node ≥22**.
 
 ```bash
 npm install -g moltbot-termux
 # or: pnpm add -g moltbot-termux
 
-moltbot onboard --install-daemon
+moltbot onboard
 ```
-
-The wizard installs the Gateway daemon (launchd/systemd user service) so it stays running.
+Gateway daemon installation does not work on Termux, but you can run it manually:
+```bash
+moltbot gateway --port 18789 --verbose
+```
 Legacy note: `clawdbot` remains available as a compatibility shim.
+
+**Clipboard fix:**
+Save this as fix.sh
+```bash
+#!/bin/bash
+
+CLIPBOARD_FIX_PATH=$(find "$HOME/.local/share/pnpm/global" -name "index.js" -path "*/@mariozechner/clipboard/*" | head -n 1)
+
+if [ -n "$CLIPBOARD_FIX_PATH" ]; then
+    echo "Found clipboard package at: $CLIPBOARD_FIX_PATH"
+    cat > "$CLIPBOARD_FIX_PATH" <<EOF
+module.exports = {
+  availableFormats: () => [],
+  getText: () => "",
+  setText: () => {},
+  hasText: () => false,
+  getImageBinary: () => null,
+  getImageBase64: () => null,
+  setImageBinary: () => {},
+  setImageBase64: () => {},
+  hasImage: () => false,
+  getHtml: () => "",
+  setHtml: () => {},
+  hasHtml: () => false,
+  getRtf: () => "",
+  setRtf: () => {},
+  hasRtf: () => false,
+  clear: () => {},
+  watch: () => {},
+  callThreadsafeFunction: () => {}
+};
+EOF
+    echo "Clipboard fix applied successfully."
+```
 
 ## Quick start (TL;DR)
 
@@ -65,7 +114,7 @@ Runtime: **Node ≥22**.
 Full beginner guide (auth, pairing, channels): [Getting started](https://docs.molt.bot/start/getting-started)
 
 ```bash
-moltbot onboard --install-daemon
+moltbot onboard
 
 moltbot gateway --port 18789 --verbose
 
