@@ -145,6 +145,7 @@ function resolveSearchProvider(search?: WebSearchConfig): (typeof SEARCH_PROVIDE
       ? search.provider.trim().toLowerCase()
       : "";
   if (raw === "perplexity") return "perplexity";
+  if (raw === "duckduckgo") return "duckduckgo";
   if (raw === "brave") return "brave";
   return "brave";
 }
