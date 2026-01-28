@@ -8,7 +8,7 @@ overrides:
   '@sinclair/typebox': 0.34.47
   hono: 4.11.4
   tar: 7.5.4
-  '@mariozechner/clipboard': link:./packages/clipboard-stub
+  '@mariozechner/clipboard': npm:noop-package@1.0.0
 
 importers:
 
@@ -317,7 +317,7 @@ importers:
     devDependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/imessage: {}
 
@@ -325,7 +325,7 @@ importers:
     devDependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/llm-task: {}
 
@@ -337,7 +337,7 @@ importers:
     devDependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/memory-lancedb:
     dependencies:
@@ -367,7 +367,7 @@ importers:
         version: 5.2.1
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       proper-lockfile:
         specifier: ^4.1.2
         version: 4.1.2
@@ -378,7 +378,7 @@ importers:
     dependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       nostr-tools:
         specifier: ^2.20.0
         version: 2.20.0(typescript@5.9.3)
@@ -420,7 +420,7 @@ importers:
     devDependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   extensions/voice-call:
     dependencies:
@@ -440,7 +440,7 @@ importers:
     dependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
       undici:
         specifier: 7.19.0
         version: 7.19.0
@@ -452,13 +452,13 @@ importers:
         version: 0.34.47
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: link:../../packages/clawdbot
 
   packages/clawdbot:
     dependencies:
       moltbot:
         specifier: workspace:*
-        version: link:../..
+        version: 'link:'
 
   packages/clipboard-stub: {}
 
@@ -4104,6 +4104,9 @@ packages:
     resolution: {integrity: sha512-M6Rm/bbG6De/gKGxOpeOobx/dnGuP0dz40adqx38boqHhlWssBJZgLCPBNtb9NkrmnKYiV04xELq+R6PFOnoLA==}
     engines: {node: '>=4.4.0'}
 
+  noop-package@1.0.0:
+    resolution: {integrity: sha512-xuPHxaC/q+RFCwRyDbQqoc/bgPodoQfMg6lkIeNUI/inqo1gLRw+/DyByjX+0Lm769zvGoglachoHyGatpMmZQ==}
+
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -6527,7 +6530,7 @@ snapshots:
 
   '@mariozechner/pi-coding-agent@0.49.3(ws@8.19.0)(zod@4.3.6)':
     dependencies:
-      '@mariozechner/clipboard': link:packages/clipboard-stub
+      '@mariozechner/clipboard': noop-package@1.0.0
       '@mariozechner/jiti': 2.6.5
       '@mariozechner/pi-agent-core': 0.49.3(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai': 0.49.3(ws@8.19.0)(zod@4.3.6)
@@ -9627,6 +9630,8 @@ snapshots:
 
   node-wav@0.0.2:
     optional: true
+
+  noop-package@1.0.0: {}
 
   normalize-path@3.0.0: {}
 
