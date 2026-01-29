@@ -29,7 +29,7 @@ It answers you on the channels you already use (WhatsApp, Telegram, Slack, Disco
 
 [Docs](https://docs.molt.bot) · [Getting Started](https://docs.molt.bot/start/getting-started) · [Updating](https://docs.molt.bot/install/updating) · [Discord](https://discord.gg/clawd)
 
-Preferred setup: run the onboarding wizard (`moltbot onboard`). It walks through gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
+Preferred setup: run the onboarding wizard (`moltbot onboard`). It walks through gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, Windows(via WSL2; strongly recommended) and Android.**.
 Works with npm, pnpm, or bun.
 New install? Start here: [Getting started](https://docs.molt.bot/start/getting-started)
 
@@ -43,6 +43,12 @@ Model note: while any model is supported, I strongly recommend **Anthropic Pro/M
 
 - Models config + CLI: [Models](https://docs.molt.bot/concepts/models)
 - Auth profile rotation (OAuth vs API keys) + fallbacks: [Model failover](https://docs.molt.bot/concepts/model-failover)
+
+Gemini Cli fails to install through npm? Run this in your termux to create a dummy Android NDK path:
+```bash
+mkdir -p ~/.gyp
+echo "{ 'variables': { 'android_ndk_path': '' } }" > ~/.gyp/include.gypi
+```
 
 ## Install (recommended)
 
