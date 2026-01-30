@@ -165,8 +165,8 @@ async function startApiServer() {
 
 // Launch TTYD
 async function startTtyd() {
-  // Check if ttyd is installed
-  if (spawnSync("command", ["-v", "ttyd"], { stdio: "ignore" }).status !== 0) {
+  // Check if ttyd is installed (use 'which' which is an actual binary)
+  if (spawnSync("which", ["ttyd"], { stdio: "ignore" }).status !== 0) {
     console.warn("ttyd is not installed. Please install it using 'pkg install ttyd -y'.");
     return;
   }
