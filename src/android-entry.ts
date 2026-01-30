@@ -51,10 +51,14 @@ async function startGateway() {
   const logStream = createWriteStream(LOG_FILE, { flags: "a" });
 
   gatewayProcess = spawn(moltbotExecutable, args, {
-    stdio: ["ignore", logStream, logStream],
+    stdio: ["ignore", "pipe", "pipe"],
     detached: true,
     env: { ...process.env },
   }) as unknown as ChildProcessWithoutNullStreams;
+
+  // Pipe stdout and stderr to log file
+  gatewayProcess.stdout.pipe(logStream);
+  gatewayProcess.stderr.pipe(logStream);
 
   gatewayProcess.unref(); // Allow the Node.js event loop to exit without waiting for the child process
 
