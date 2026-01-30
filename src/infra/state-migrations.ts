@@ -343,12 +343,46 @@ export async function autoMigrateLegacyStateDir(params: {
   if (legacyStat.isSymbolicLink()) {
     const legacyTarget = resolveSymlinkTarget(legacyDir);
     if (legacyTarget && path.resolve(legacyTarget) === path.resolve(targetDir)) {
+      return { migrated: false, skipped: false, changes: [], warnings: [] };
+    }
+
+    if (isDirPath(targetDir) || fs.existsSync(targetDir)) {
+      warnings.push(
+        `State dir migration skipped: target already exists (${targetDir}). Remove or merge manually.`,
+      );
       return { migrated: false, skipped: false, changes, warnings };
     }
-    warnings.push(
-      `Legacy state dir is a symlink (${legacyDir} → ${legacyTarget ?? "unknown"}); skipping auto-migration.`,
-    );
-    return { migrated: false, skipped: false, changes, warnings };
+
+    if (!legacyTarget) {
+      warnings.push(`Legacy state dir is a broken symlink (${legacyDir}); skipping auto-migration.`);
+      return { migrated: false, skipped: false, changes, warnings };
+    }
+
+    try {
+      fs.symlinkSync(legacyTarget, targetDir, "dir");
+    } catch (err) {
+      try {
+        if (process.platform === "win32") {
+          fs.symlinkSync(legacyTarget, targetDir, "junction");
+        } else {
+          throw err;
+        }
+      } catch (linkErr) {
+        warnings.push(`Failed to create symlink for new state dir (${targetDir} → ${legacyTarget}): ${String(linkErr)}`);
+        return { migrated: false, skipped: false, changes, warnings };
+      }
+    }
+
+    try {
+      fs.unlinkSync(legacyDir);
+      fs.symlinkSync(targetDir, legacyDir, "dir");
+      changes.push(`State dir (symlink): ${legacyDir} → ${targetDir} (both now point to ${legacyTarget})`);
+    } catch (err) {
+      warnings.push(`Failed to update legacy symlink (${legacyDir} → ${targetDir}): ${String(err)}`);
+      // We left targetDir as a symlink to legacyTarget, which is technically partially migrated.
+    }
+
+    return { migrated: changes.length > 0, skipped: false, changes, warnings };
   }
 
   if (isDirPath(targetDir)) {

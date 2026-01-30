@@ -210,3 +210,33 @@ export function resolveAgentRoute(input: ResolveAgentRouteInput): ResolvedAgentR
 
   return choose(resolveDefaultAgentId(input.cfg), "default");
 }
+
+/**
+ * Resolve all agent IDs bound to a specific account on a channel.
+ * Falls back to the default agent if no specific bindings are found.
+ */
+export function resolveBoundAgentIdsForAccount(params: {
+  cfg: MoltbotConfig;
+  channel: string;
+  accountId: string;
+}): string[] {
+  const channel = normalizeToken(params.channel);
+  const accountId = normalizeAccountId(params.accountId);
+  const agentIds = new Set<string>();
+
+  for (const binding of listBindings(params.cfg)) {
+    if (!binding || typeof binding !== "object") continue;
+    if (
+      matchesChannel(binding.match, channel) &&
+      matchesAccountId(binding.match?.accountId, accountId)
+    ) {
+      agentIds.add(normalizeAgentId(binding.agentId));
+    }
+  }
+
+  if (agentIds.size === 0) {
+    agentIds.add(normalizeAgentId(resolveDefaultAgentId(params.cfg)));
+  }
+
+  return Array.from(agentIds);
+}

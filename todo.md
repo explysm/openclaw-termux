@@ -6,15 +6,15 @@ Go in order of which ones havent been done
 
 ## Upstream Tasks (Sync: Fri Jan 30 01:10:30 CST 2026)
 - [x] fix(security): harden SSH target handling (#4001)
-- [ ] feat: support xiaomi/mimo-v2-flash
+- [x] feat: support xiaomi/mimo-v2-flash
 - [x] fix: preserve reasoning tags inside code blocks (#4118)
 - [x] fix: update config types
-- [ ] fix: migrate legacy gateway services
-- [ ] fix: migrate legacy config
-- [ ] fix: migrate legacy state dirs
-- [ ] fix: migrate symlinked legacy state dirs
-- [ ] fix: detect legacy gateway launchd labels
+- [x] fix: migrate legacy gateway services
+- [x] fix: migrate legacy config
+- [x] fix: migrate legacy state dirs
+- [x] fix: migrate symlinked legacy state dirs
+- [x] fix: detect legacy gateway launchd labels
 - [x] feat: add Kimi K2.5 model to synthetic catalog (#4407)
 - [x] feat: add Xiaomi MiMo provider onboarding (#3454)
-- [ ] fix(telegram): scope skill commands to bound agent per bot
+- [x] fix(telegram): scope skill commands to bound agent per bot
 
