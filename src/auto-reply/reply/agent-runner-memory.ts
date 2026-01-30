@@ -66,7 +66,7 @@ export async function runMemoryFlushIfNeeded(params: {
         agentCfgContextTokens: params.agentCfgContextTokens,
       }),
       reserveTokensFloor: memoryFlushSettings.reserveTokensFloor,
-      softThresholdTokens: memoryFlushSettings.softThresholdTokens,
+      softThresholdTokens: memoryFlushSettings.softThresholdTokens * (params.sessionEntry?.saveTokenMemory ? 2 : 1),
     });
 
   if (!shouldFlushMemory) return params.sessionEntry;

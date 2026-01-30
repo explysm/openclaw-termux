@@ -12,7 +12,7 @@ export function resolveZaloProxyFetch(proxyUrl?: string | null): ZaloFetch | und
   if (cached) return cached;
   const agent = new ProxyAgent(trimmed);
   const fetcher: ZaloFetch = (input, init) =>
-    undiciFetch(input, { ...(init ?? {}), dispatcher: agent as Dispatcher });
+    undiciFetch(input, { ...(init ?? {}), dispatcher: agent as Dispatcher }) as unknown as Promise<Response>;
   proxyCache.set(trimmed, fetcher);
   return fetcher;
 }

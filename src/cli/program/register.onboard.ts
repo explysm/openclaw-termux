@@ -52,7 +52,7 @@ export function registerOnboardCommand(program: Command) {
     .option("--mode <mode>", "Wizard mode: local|remote")
     .option(
       "--auth-choice <choice>",
-      "Auth: setup-token|token|chutes|openai-codex|openai-api-key|openrouter-api-key|ai-gateway-api-key|moonshot-api-key|kimi-code-api-key|synthetic-api-key|venice-api-key|gemini-api-key|zai-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|xiaomi-api-key|skip",
+      "Auth: setup-token|token|chutes|openai-codex|openai-api-key|openrouter-api-key|ai-gateway-api-key|moonshot-api-key|kimi-code-api-key|synthetic-api-key|venice-api-key|gemini-api-key|zai-api-key|apiKey|minimax-api|minimax-api-lightning|opencode-zen|xiaomi-api-key|groq-api-key|skip",
     )
     .option(
       "--token-provider <id>",
@@ -74,8 +74,11 @@ export function registerOnboardCommand(program: Command) {
     .option("--zai-api-key <key>", "Z.AI API key")
     .option("--minimax-api-key <key>", "MiniMax API key")
     .option("--synthetic-api-key <key>", "Synthetic API key")
-    .option("--venice-api-key <key>", "Venice API key")
+    .option("--venice-api-key <key>", "Venice AI API key")
     .option("--xiaomi-api-key <key>", "Xiaomi MiMo API key")
+    .option("--groq-api-key <key>", "Groq API key")
+    .option("--cerebras-api-key <key>", "Cerebras API key")
+    .option("--cerebras-model-id <id>", "Cerebras custom model ID")
     .option("--opencode-zen-api-key <key>", "OpenCode Zen API key")
     .option("--gateway-port <port>", "Gateway port")
     .option("--gateway-bind <mode>", "Gateway bind: loopback|tailnet|lan|auto|custom")
@@ -127,6 +130,9 @@ export function registerOnboardCommand(program: Command) {
             syntheticApiKey: opts.syntheticApiKey as string | undefined,
             veniceApiKey: opts.veniceApiKey as string | undefined,
             xiaomiApiKey: opts.xiaomiApiKey as string | undefined,
+            groqApiKey: opts.groqApiKey as string | undefined,
+            cerebrasApiKey: opts.cerebrasApiKey as string | undefined,
+            cerebrasModelId: opts.cerebrasModelId as string | undefined,
             opencodeZenApiKey: opts.opencodeZenApiKey as string | undefined,
             gatewayPort:
               typeof gatewayPort === "number" && Number.isFinite(gatewayPort)

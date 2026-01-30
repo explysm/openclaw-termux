@@ -10,16 +10,22 @@ import {
   VENICE_DEFAULT_MODEL_REF,
   VENICE_MODEL_CATALOG,
 } from "../agents/venice-models.js";
+import { CEREBRAS_MODEL_CATALOG, buildCerebrasModelDefinition } from "../agents/cerebras-models.js";
+import type { ModelApi, ModelDefinitionConfig } from "../config/types.models.js";
 import type { MoltbotConfig } from "../config/config.js";
 import {
   OPENROUTER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
-} from "./onboard-auth.credentials.js";
+} from "./onboard-auth.models.js";
 import {
   buildKimiCodeModelDefinition,
   buildMoonshotModelDefinition,
   buildXiaomiModelDefinition,
+  buildGroqModelDefinition,
+  GROQ_BASE_URL,
+  GROQ_DEFAULT_MODEL_ID,
+  GROQ_DEFAULT_MODEL_REF,
   KIMI_CODE_BASE_URL,
   KIMI_CODE_MODEL_ID,
   KIMI_CODE_MODEL_REF,
@@ -336,6 +342,71 @@ export function applyXiaomiConfig(cfg: MoltbotConfig): MoltbotConfig {
   };
 }
 
+export function applyGroqProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[GROQ_DEFAULT_MODEL_REF] = {
+    ...models[GROQ_DEFAULT_MODEL_REF],
+    alias: models[GROQ_DEFAULT_MODEL_REF]?.alias ?? "Groq",
+  };
+
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.groq;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  const defaultModel = buildGroqModelDefinition();
+  const hasDefaultModel = existingModels.some((model) => model.id === GROQ_DEFAULT_MODEL_ID);
+  const mergedModels = hasDefaultModel ? existingModels : [...existingModels, defaultModel];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  providers.groq = {
+    ...existingProviderRest,
+    baseUrl: GROQ_BASE_URL,
+    api: "openai-completions",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : [defaultModel],
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+export function applyGroqConfig(cfg: MoltbotConfig): MoltbotConfig {
+  const next = applyGroqProviderConfig(cfg);
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: GROQ_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
 export function applySyntheticProviderConfig(cfg: MoltbotConfig): MoltbotConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[SYNTHETIC_DEFAULT_MODEL_REF] = {
@@ -474,6 +545,104 @@ export function applyVeniceConfig(cfg: MoltbotConfig): MoltbotConfig {
               }
             : undefined),
           primary: VENICE_DEFAULT_MODEL_REF,
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Apply Cerebras provider configuration without changing the default model.
+ * Registers Cerebras models and sets up the provider, but preserves existing model selection.
+ */
+export function applyCerebrasProviderConfig(
+  cfg: MoltbotConfig,
+  params?: { customModelId?: string },
+): MoltbotConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  const customModelId = params?.customModelId?.trim();
+  let cerebrasModels = CEREBRAS_MODEL_CATALOG.map(buildCerebrasModelDefinition);
+
+  if (customModelId) {
+    const customModelDefinition = {
+      id: customModelId,
+      name: customModelId,
+      api: "cerebras-completions" as ModelApi,
+      provider: "cerebras",
+      reasoning: true,
+      input: ["text" as const],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, // Apply sensible defaults or take from params
+      contextWindow: 4096,
+      maxTokens: 2048,
+    };
+    cerebrasModels = [customModelDefinition, ...cerebrasModels.filter(m => m.id !== customModelId)];
+  }
+  
+  const providers = { ...cfg.models?.providers };
+  const existingProvider = providers.cerebras;
+  const existingModels = Array.isArray(existingProvider?.models) ? existingProvider.models : [];
+  
+  const mergedModels = [
+    ...existingModels,
+    ...cerebrasModels.filter(
+      (model) => !existingModels.some((existing) => existing.id === model.id),
+    ),
+  ];
+  const { apiKey: existingApiKey, ...existingProviderRest } = (existingProvider ?? {}) as Record<
+    string,
+    unknown
+  > as { apiKey?: string };
+  const resolvedApiKey = typeof existingApiKey === "string" ? existingApiKey : undefined;
+  const normalizedApiKey = resolvedApiKey?.trim();
+  providers.cerebras = {
+    ...existingProviderRest,
+    baseUrl: "https://api.cerebras.ai/v1",
+    api: "cerebras-completions",
+    ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
+    models: mergedModels.length > 0 ? mergedModels : cerebrasModels,
+  };
+
+  return {
+    ...cfg,
+    agents: {
+      ...cfg.agents,
+      defaults: {
+        ...cfg.agents?.defaults,
+        models,
+      },
+    },
+    models: {
+      mode: cfg.models?.mode ?? "merge",
+      providers,
+    },
+  };
+}
+
+/**
+ * Apply Cerebras provider configuration AND set Cerebras as the default model.
+ * Use this when Cerebras is the primary provider choice during onboarding.
+ */
+export function applyCerebrasConfig(
+  cfg: MoltbotConfig,
+  params?: { customModelId?: string },
+): MoltbotConfig {
+  const next = applyCerebrasProviderConfig(cfg, params);
+  const CEREBRAS_DEFAULT_MODEL_ID_OR_CUSTOM = params?.customModelId?.trim() || CEREBRAS_MODEL_CATALOG[0]?.id;
+
+  const existingModel = next.agents?.defaults?.model;
+  return {
+    ...next,
+    agents: {
+      ...next.agents,
+      defaults: {
+        ...next.agents?.defaults,
+        model: {
+          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
+            ? {
+                fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks,
+              }
+            : undefined),
+          primary: `cerebras/${CEREBRAS_DEFAULT_MODEL_ID_OR_CUSTOM}`,
         },
       },
     },

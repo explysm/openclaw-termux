@@ -22,7 +22,9 @@ export type AuthChoiceGroupId =
   | "venice"
   | "qwen"
   | "xiaomi"
-  | "ollama";
+  | "groq"
+  | "ollama"
+  | "cerebras";
 
 export type AuthChoiceGroup = {
   value: AuthChoiceGroupId;
@@ -56,10 +58,10 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["xiaomi-api-key"],
   },
   {
-    value: "ollama",
-    label: "Ollama",
-    hint: "Local LLMs (auto-discovery)",
-    choices: ["ollama"],
+    value: "groq",
+    label: "Groq",
+    hint: "Llama 3 (ultra-fast inference)",
+    choices: ["groq-api-key"],
   },
   {
     value: "minimax",
@@ -122,10 +124,16 @@ const AUTH_CHOICE_GROUP_DEFS: {
     choices: ["zai-api-key"],
   },
   {
-    value: "opencode-zen",
-    label: "OpenCode Zen",
-    hint: "API key",
-    choices: ["opencode-zen"],
+    value: "ollama",
+    label: "Ollama",
+    hint: "Local LLMs (auto-discovery)",
+    choices: ["ollama"],
+  },
+  {
+    value: "cerebras",
+    label: "Cerebras",
+    hint: "GPT-style completions",
+    choices: ["cerebras-api-key"],
   },
 ];
 
@@ -185,6 +193,11 @@ export function buildAuthChoiceOptions(params: {
     hint: "Fast inference, 262k-token context window",
   });
   options.push({
+    value: "groq-api-key",
+    label: "Groq API key",
+    hint: "Llama 3, Mixtral (fastest inference)",
+  });
+  options.push({
     value: "copilot-proxy",
     label: "Copilot Proxy (local)",
     hint: "Local proxy for VS Code Copilot models",
@@ -207,6 +220,7 @@ export function buildAuthChoiceOptions(params: {
     label: "MiniMax M2.1 Lightning",
     hint: "Faster, higher output cost",
   });
+  options.push({ value: "cerebras-api-key", label: "Cerebras API key" });
   if (params.includeSkip) {
     options.push({ value: "skip", label: "Skip for now" });
   }

@@ -13,6 +13,8 @@ import {
   SYNTHETIC_MODEL_CATALOG,
 } from "./synthetic-models.js";
 import { discoverVeniceModels, VENICE_BASE_URL } from "./venice-models.js";
+import { discoverGroqModels, GROQ_BASE_URL } from "./groq-models.js";
+import { CEREBRAS_MODEL_CATALOG, buildCerebrasModelDefinition } from "./cerebras-models.js";
 
 type ModelsConfig = NonNullable<MoltbotConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -420,6 +422,15 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
+async function buildGroqProvider(apiKey: string): Promise<ProviderConfig> {
+  const models = await discoverGroqModels(apiKey);
+  return {
+    baseUrl: GROQ_BASE_URL,
+    api: "openai-completions",
+    models,
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -488,6 +499,25 @@ export async function resolveImplicitProviders(params: {
         resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
       providers.ollama = { ...ollamaProvider, apiKey: ollamaKey ?? "ollama" };
     }
+  }
+
+  const groqKey =
+    resolveEnvApiKeyVarName("groq") ??
+    resolveApiKeyFromProfiles({ provider: "groq", store: authStore });
+  if (groqKey) {
+    providers.groq = { ...(await buildGroqProvider(groqKey)), apiKey: groqKey };
+  }
+
+  const cerebrasKey =
+    resolveEnvApiKeyVarName("cerebras") ??
+    resolveApiKeyFromProfiles({ provider: "cerebras", store: authStore });
+  if (cerebrasKey) {
+    providers.cerebras = {
+      baseUrl: "https://api.cerebras.ai/v1", // Explicitly set base URL for Cerebras
+      api: "cerebras-completions", // Use the newly defined API type
+      models: CEREBRAS_MODEL_CATALOG.map(buildCerebrasModelDefinition), // Use the static catalog
+      apiKey: cerebrasKey,
+    };
   }
 
   return providers;

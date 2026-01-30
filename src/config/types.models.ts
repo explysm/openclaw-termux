@@ -4,7 +4,8 @@ export type ModelApi =
   | "anthropic-messages"
   | "google-generative-ai"
   | "github-copilot"
-  | "bedrock-converse-stream";
+  | "bedrock-converse-stream"
+  | "cerebras-completions";
 
 export type ModelCompatConfig = {
   supportsStore?: boolean;
@@ -20,6 +21,7 @@ export type ModelProviderAuthMode = "api-key" | "aws-sdk" | "oauth" | "token";
 export type ModelDefinitionConfig = {
   id: string;
   name: string;
+  provider?: string;
   api?: ModelApi;
   reasoning: boolean;
   input: Array<"text" | "image">;

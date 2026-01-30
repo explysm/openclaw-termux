@@ -9,6 +9,7 @@ export const ModelApiSchema = z.union([
   z.literal("google-generative-ai"),
   z.literal("github-copilot"),
   z.literal("bedrock-converse-stream"),
+  z.literal("cerebras-completions"),
 ]);
 
 export const ModelCompatSchema = z
@@ -27,6 +28,7 @@ export const ModelDefinitionSchema = z
   .object({
     id: z.string().min(1),
     name: z.string().min(1),
+    provider: z.string().optional(),
     api: ModelApiSchema.optional(),
     reasoning: z.boolean().optional(),
     input: z.array(z.union([z.literal("text"), z.literal("image")])).optional(),

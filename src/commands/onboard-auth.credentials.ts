@@ -112,9 +112,14 @@ export async function setVeniceApiKey(key: string, agentDir?: string) {
   });
 }
 
-export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
-export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
-export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.5";
+
+
+export {
+  CEREBRAS_DEFAULT_MODEL_REF,
+  OPENROUTER_DEFAULT_MODEL_REF,
+  VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
+  ZAI_DEFAULT_MODEL_REF,
+} from "./onboard-auth.models.js";
 
 export async function setZaiApiKey(key: string, agentDir?: string) {
   // Write to resolved agent dir so gateway finds credentials on startup.
@@ -136,6 +141,32 @@ export async function setXiaomiApiKey(key: string, agentDir?: string) {
     credential: {
       type: "api_key",
       provider: "xiaomi",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setGroqApiKey(key: string, agentDir?: string) {
+  // Write to resolved agent dir so gateway finds credentials on startup.
+  upsertAuthProfile({
+    profileId: "groq:default",
+    credential: {
+      type: "api_key",
+      provider: "groq",
+      key,
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
+
+export async function setCerebrasApiKey(key: string, agentDir?: string) {
+  // Write to resolved agent dir so gateway finds credentials on startup.
+  upsertAuthProfile({
+    profileId: "cerebras:default",
+    credential: {
+      type: "api_key",
+      provider: "cerebras",
       key,
     },
     agentDir: resolveAuthAgentDir(agentDir),

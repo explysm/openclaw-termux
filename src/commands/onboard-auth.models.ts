@@ -26,6 +26,18 @@ export const XIAOMI_DEFAULT_MODEL_REF = `xiaomi/${XIAOMI_DEFAULT_MODEL_ID}`;
 export const XIAOMI_DEFAULT_CONTEXT_WINDOW = 262144;
 export const XIAOMI_DEFAULT_MAX_TOKENS = 32768;
 
+export const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+export const GROQ_DEFAULT_MODEL_ID = "llama-3.3-70b-versatile";
+export const GROQ_DEFAULT_MODEL_REF = `groq/${GROQ_DEFAULT_MODEL_ID}`;
+
+export const ZAI_DEFAULT_MODEL_REF = "zai/glm-4.7";
+export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
+export const VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF = "vercel-ai-gateway/anthropic/claude-opus-4.5";
+
+export const CEREBRAS_DEFAULT_MODEL_REF = "cerebras/cerebras-gpt-7b";
+export const GROQ_DEFAULT_CONTEXT_WINDOW = 128000;
+export const GROQ_DEFAULT_MAX_TOKENS = 8192;
+
 // Pricing: MiniMax doesn't publish public rates. Override in models.json for accurate costs.
 export const MINIMAX_API_COST = {
   input: 15,
@@ -137,5 +149,22 @@ export function buildXiaomiModelDefinition(): ModelDefinitionConfig {
     },
     contextWindow: XIAOMI_DEFAULT_CONTEXT_WINDOW,
     maxTokens: XIAOMI_DEFAULT_MAX_TOKENS,
+  };
+}
+
+export function buildGroqModelDefinition(): ModelDefinitionConfig {
+  return {
+    id: GROQ_DEFAULT_MODEL_ID,
+    name: "Llama 3.3 70B Versatile",
+    reasoning: false,
+    input: ["text"],
+    cost: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: GROQ_DEFAULT_CONTEXT_WINDOW,
+    maxTokens: GROQ_DEFAULT_MAX_TOKENS,
   };
 }

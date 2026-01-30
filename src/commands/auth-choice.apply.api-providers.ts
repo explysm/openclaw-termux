@@ -30,6 +30,10 @@ import {
   applyZaiConfig,
   applyXiaomiConfig,
   applyXiaomiProviderConfig,
+  applyGroqConfig,
+  applyGroqProviderConfig,
+  applyCerebrasConfig,
+  applyCerebrasProviderConfig,
   setGeminiApiKey,
   setKimiCodeApiKey,
   setMoonshotApiKey,
@@ -37,9 +41,12 @@ import {
   setOpenrouterApiKey,
   setSyntheticApiKey,
   setXiaomiApiKey,
+  setGroqApiKey,
+  setCerebrasApiKey,
   setVeniceApiKey,
   setVercelAiGatewayApiKey,
   setZaiApiKey,
+  GROQ_DEFAULT_MODEL_REF,
   KIMI_CODE_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
@@ -48,6 +55,7 @@ import {
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
+  CEREBRAS_DEFAULT_MODEL_REF,
 } from "./onboard-auth.js";
 import { OPENCODE_ZEN_DEFAULT_MODEL } from "./opencode-zen-model-default.js";
 
@@ -91,6 +99,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "opencode-zen";
     } else if (params.opts.tokenProvider === "xiaomi") {
       authChoice = "xiaomi-api-key";
+    } else if (params.opts.tokenProvider === "groq") {
+      authChoice = "groq-api-key";
     }
   }
 
@@ -624,6 +634,120 @@ export async function applyAuthChoiceApiProviders(
         applyDefaultConfig: applyXiaomiConfig,
         applyProviderConfig: applyXiaomiProviderConfig,
         noteDefault: XIAOMI_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "groq-api-key") {
+    let hasCredential = false;
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "groq") {
+      await setGroqApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    const envKey = resolveEnvApiKey("groq");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing GROQ_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setGroqApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message: "Enter Groq API key",
+        validate: validateApiKeyInput,
+      });
+      await setGroqApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "groq:default",
+      provider: "groq",
+      mode: "api_key",
+    });
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: GROQ_DEFAULT_MODEL_REF,
+        applyDefaultConfig: applyGroqConfig,
+        applyProviderConfig: applyGroqProviderConfig,
+        noteDefault: GROQ_DEFAULT_MODEL_REF,
+        noteAgentModel,
+        prompter: params.prompter,
+      });
+      nextConfig = applied.config;
+      agentModelOverride = applied.agentModelOverride ?? agentModelOverride;
+    }
+    return { config: nextConfig, agentModelOverride };
+  }
+
+  if (authChoice === "cerebras-api-key") {
+    let hasCredential = false;
+
+    if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "cerebras") {
+      await setCerebrasApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      hasCredential = true;
+    }
+
+    const envKey = resolveEnvApiKey("cerebras");
+    if (envKey) {
+      const useExisting = await params.prompter.confirm({
+        message: `Use existing CEREBRAS_API_KEY (${envKey.source}, ${formatApiKeyPreview(envKey.apiKey)})?`,
+        initialValue: true,
+      });
+      if (useExisting) {
+        await setCerebrasApiKey(envKey.apiKey, params.agentDir);
+        hasCredential = true;
+      }
+    }
+    if (!hasCredential) {
+      const key = await params.prompter.text({
+        message: "Enter Cerebras API key",
+        validate: validateApiKeyInput,
+      });
+      await setCerebrasApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+    }
+    nextConfig = applyAuthProfileConfig(nextConfig, {
+      profileId: "cerebras:default",
+      provider: "cerebras",
+      mode: "api_key",
+    });
+
+    let customModelId: string | undefined;
+    if (params.opts?.cerebrasModelId) {
+      customModelId = params.opts.cerebrasModelId;
+    } else {
+      const modelIdInput = await params.prompter.text({
+        message: "Enter Cerebras custom model ID (leave blank for default)",
+        initialValue: "",
+        validate: (value) => {
+          if (value && value.trim().includes('/')) {
+            return "Model ID cannot contain '/'";
+          }
+          return undefined;
+        },
+      });
+      customModelId = modelIdInput.trim() || undefined;
+    }
+
+    {
+      const applied = await applyDefaultModelChoice({
+        config: nextConfig,
+        setDefaultModel: params.setDefaultModel,
+        defaultModel: CEREBRAS_DEFAULT_MODEL_REF,
+        applyDefaultConfig: (cfg) => applyCerebrasConfig(cfg, { customModelId }),
+        applyProviderConfig: (cfg) => applyCerebrasProviderConfig(cfg, { customModelId }),
+        noteDefault: customModelId ? `cerebras/${customModelId}` : CEREBRAS_DEFAULT_MODEL_REF,
         noteAgentModel,
         prompter: params.prompter,
       });

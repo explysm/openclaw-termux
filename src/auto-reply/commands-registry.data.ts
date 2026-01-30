@@ -342,6 +342,22 @@ function buildChatCommands(): ChatCommandDefinition[] {
       argsMenu: "auto",
     }),
     defineChatCommand({
+      key: "savetokenmemory",
+      nativeName: "savetokenmemory",
+      description: "Toggle more aggressive token memory saving for smaller models.",
+      textAlias: "/savetokenmemory",
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "on or off",
+          type: "string",
+          choices: ["on", "off"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
       key: "stop",
       nativeName: "stop",
       description: "Stop the current run.",

@@ -214,6 +214,55 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   };
 };
 
+export const handleSaveTokenMemoryCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) return null;
+  const normalized = params.command.commandBodyNormalized;
+  if (normalized !== "/savetokenmemory" && !normalized.startsWith("/savetokenmemory ")) return null;
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(
+      `Ignoring /savetokenmemory from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
+    return { shouldContinue: false };
+  }
+
+  const rawArgs =
+    normalized === "/savetokenmemory" ? "" : normalized.slice("/savetokenmemory".length).trim();
+  const requested =
+    rawArgs === "on" || rawArgs === "true"
+      ? true
+      : rawArgs === "off" || rawArgs === "false"
+        ? false
+        : undefined;
+
+  if (rawArgs && requested === undefined) {
+    return {
+      shouldContinue: false,
+      reply: { text: "⚙️ Usage: /savetokenmemory on|off" },
+    };
+  }
+
+  const current = params.sessionEntry?.saveTokenMemory ?? false;
+  const next = requested ?? !current;
+
+  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
+    params.sessionEntry.saveTokenMemory = next;
+    params.sessionEntry.updatedAt = Date.now();
+    params.sessionStore[params.sessionKey] = params.sessionEntry;
+    if (params.storePath) {
+      await updateSessionStore(params.storePath, (store) => {
+        store[params.sessionKey] = params.sessionEntry as SessionEntry;
+      });
+    }
+  }
+
+  return {
+    shouldContinue: false,
+    reply: {
+      text: `⚙️ Token memory saving: ${next ? "on" : "off"}.`,
+    },
+  };
+};
+
 export const handleRestartCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) return null;
   if (params.command.commandBodyNormalized !== "/restart") return null;
