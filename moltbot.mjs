@@ -11,4 +11,11 @@ if (module.enableCompileCache && !process.env.NODE_DISABLE_COMPILE_CACHE) {
   }
 }
 
-await import("./dist/entry.js");
+// Android app detection
+const isAndroidApp = process.argv.includes("--android-app") || process.env.ANDROID_APP === "1";
+
+if (isAndroidApp) {
+  await import("./dist/android-entry.js");
+} else {
+  await import("./dist/entry.js");
+}

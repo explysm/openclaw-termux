@@ -7,6 +7,23 @@ pkg update -y && pkg upgrade -y
 echo "Installing Node.js (LTS)..."
 pkg install nodejs-lts -y
 
+# Detect Android app context for conditional ttyd installation
+INSTALL_TTYD=0
+if [[ "$ANDROID_APP" == "1" ]]; then
+    echo "Android app context detected (ANDROID_APP=1)."
+    INSTALL_TTYD=1
+elif [[ "$*" == *"--android-app"* ]]; then # Basic flag detection
+    echo "Android app flag detected (--android-app)."
+    INSTALL_TTYD=1
+fi
+
+if [[ "$INSTALL_TTYD" == "1" ]]; then
+    echo "Installing ttyd for WebView integration..."
+    pkg install ttyd -y
+else
+    echo "Skipping ttyd installation."
+fi
+
 if ! command -v pnpm &> /dev/null; then
     echo "Installing pnpm via npm..."
     npm install -g pnpm
