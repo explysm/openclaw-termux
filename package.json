@@ -1,6 +1,6 @@
 {
   "name": "moltbot-termux",
-  "version": "2026.1.30",
+  "version": "2026.1.31",
   "description": "OpenClaw distribution for Android (Termux)",
   "type": "module",
   "main": "dist/index.js",
