@@ -7,7 +7,7 @@ Go in order of which ones havent been done
 # Project Todo
 
 
-## Upstream Tasks (Sync: Sat Jan 31 11:39:28 CST 2026)
+## Upstream Tasks (Sync: Sun Feb  1 17:29:53 CST 2026)
 - [x] fix(security): harden SSH target handling (#4001)
 - [x] feat: support xiaomi/mimo-v2-flash
 - [x] fix: preserve reasoning tags inside code blocks (#4118)
@@ -41,3 +41,8 @@ Go in order of which ones havent been done
 - [x] feat(ui): refresh session list after chat commands in Web UI
 - [x] UI: introduce active minutes constant for chat sessions and enhance session display names
 - [x] feat: add completion subcommand to generate shell completion scripts for Zsh, Bash, PowerShell, and Fish.
+- [ ] feat: extend CreateAgentSessionOptions with new properties
+- [ ] fix(agents): update cacheControlTtl to cacheRetention for pi-ai 0.50.9
+- [ ] fix(tui): prevent crash when searching with digits in model selector
+- [ ] fix: Missing before_tool_call hook integration
+- [ ] Security: harden web tools and file parsing
