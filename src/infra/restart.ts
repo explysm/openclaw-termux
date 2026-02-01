@@ -93,7 +93,27 @@ export function triggerMoltbotRestart(): RestartAttempt {
   }
   const tried: string[] = [];
   if (process.platform !== "darwin") {
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const unit = resolveGatewaySystemdServiceName(process.env.CLAWDBOT_PROFILE);
+        const args = ["restart", unit];
+        tried.push(`sv ${args.join(" ")}`);
+        const res = spawnSync("sv", args, {
+          encoding: "utf8",
+          timeout: SPAWN_TIMEOUT_MS,
+        });
+        if (!res.error && res.status === 0) {
+          return { ok: true, method: "supervisor", tried };
+        }
+        return {
+          ok: false,
+          method: "supervisor",
+          detail: formatSpawnDetail(res),
+          tried,
+        };
+      }
+
       const unit = normalizeSystemdUnit(
         process.env.CLAWDBOT_SYSTEMD_UNIT,
         process.env.CLAWDBOT_PROFILE,

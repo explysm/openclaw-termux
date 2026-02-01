@@ -110,7 +110,7 @@ export async function runDaemonStart(opts: DaemonLifecycleOptions = {}) {
   }
   if (!loaded) {
     let hints = renderGatewayServiceStartHints();
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       const systemdAvailable = await isSystemdUserServiceAvailable().catch(() => false);
       if (!systemdAvailable) {
         hints = [...hints, ...renderSystemdUnavailableHints({ wsl: await isWSL() })];
@@ -256,7 +256,7 @@ export async function runDaemonRestart(opts: DaemonLifecycleOptions = {}): Promi
   }
   if (!loaded) {
     let hints = renderGatewayServiceStartHints();
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       const systemdAvailable = await isSystemdUserServiceAvailable().catch(() => false);
       if (!systemdAvailable) {
         hints = [...hints, ...renderSystemdUnavailableHints({ wsl: await isWSL() })];

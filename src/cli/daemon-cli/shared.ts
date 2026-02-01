@@ -141,9 +141,15 @@ export function renderRuntimeHints(
       const logs = resolveGatewayLogPaths(env);
       hints.push(`Launchd stdout (if installed): ${logs.stdoutPath}`);
       hints.push(`Launchd stderr (if installed): ${logs.stderrPath}`);
-    } else if (process.platform === "linux") {
+    } else if (process.platform === "linux" || process.platform === "android") {
       const unit = resolveGatewaySystemdServiceName(env.CLAWDBOT_PROFILE);
-      hints.push(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`);
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const prefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+        hints.push(`Logs: ${prefix}/var/service/${unit}/log/current`);
+      } else {
+        hints.push(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`);
+      }
     } else if (process.platform === "win32") {
       const task = resolveGatewayWindowsTaskName(env.CLAWDBOT_PROFILE);
       hints.push(`Logs: schtasks /Query /TN "${task}" /V /FO LIST`);
@@ -166,6 +172,14 @@ export function renderGatewayServiceStartHints(env: NodeJS.ProcessEnv = process.
     case "linux": {
       const unit = resolveGatewaySystemdServiceName(profile);
       return [...base, `systemctl --user start ${unit}.service`];
+    }
+    case "android": {
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const unit = resolveGatewaySystemdServiceName(profile);
+        return [...base, `sv up ${unit}`];
+      }
+      return base;
     }
     case "win32": {
       const task = resolveGatewayWindowsTaskName(profile);

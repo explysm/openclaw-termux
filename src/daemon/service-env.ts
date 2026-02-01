@@ -25,12 +25,16 @@ type BuildServicePathOptions = MinimalServicePathOptions & {
   env?: Record<string, string | undefined>;
 };
 
-function resolveSystemPathDirs(platform: NodeJS.Platform): string[] {
+function resolveSystemPathDirs(platform: NodeJS.Platform, env?: Record<string, string | undefined>): string[] {
   if (platform === "darwin") {
     return ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
   }
   if (platform === "linux") {
     return ["/usr/local/bin", "/usr/bin", "/bin"];
+  }
+  if (platform === "android") {
+    const prefix = env?.PREFIX || "/data/data/com.termux/files/usr";
+    return [`${prefix}/bin`];
   }
   return [];
 }
@@ -86,11 +90,13 @@ export function getMinimalServicePathParts(options: MinimalServicePathOptions = 
 
   const parts: string[] = [];
   const extraDirs = options.extraDirs ?? [];
-  const systemDirs = resolveSystemPathDirs(platform);
+  const systemDirs = resolveSystemPathDirs(platform, options.env);
 
   // Add Linux user bin directories (npm global, nvm, fnm, volta, etc.)
   const linuxUserDirs =
-    platform === "linux" ? resolveLinuxUserBinDirs(options.home, options.env) : [];
+    platform === "linux" || platform === "android"
+      ? resolveLinuxUserBinDirs(options.home, options.env)
+      : [];
 
   const add = (dir: string) => {
     if (!dir) return;

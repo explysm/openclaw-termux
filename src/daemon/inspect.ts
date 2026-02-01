@@ -15,7 +15,7 @@ import {
 } from "./constants.js";
 
 export type ExtraGatewayService = {
-  platform: "darwin" | "linux" | "win32";
+  platform: "darwin" | "linux" | "win32" | "android";
   label: string;
   detail: string;
   scope: "user" | "system";
@@ -47,6 +47,11 @@ export function renderGatewayServiceCleanupHints(
     case "win32": {
       const task = resolveGatewayWindowsTaskName(profile);
       return [`schtasks /Delete /TN "${task}" /F`];
+    }
+    case "android": {
+      const unit = resolveGatewaySystemdServiceName(profile);
+      const prefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+      return [`sv-disable ${unit}`, `rm -rf ${prefix}/var/service/${unit}`];
     }
     default:
       return [];
@@ -298,27 +303,57 @@ export async function findExtraGatewayServices(
     return results;
   }
 
-  if (process.platform === "linux") {
+  if (process.platform === "linux" || process.platform === "android") {
     try {
-      const home = resolveHomeDir(env);
-      const userDir = path.join(home, ".config", "systemd", "user");
-      for (const svc of await scanSystemdDir({
-        dir: userDir,
-        scope: "user",
-      })) {
-        push(svc);
-      }
-      if (opts.deep) {
-        for (const dir of [
-          "/etc/systemd/system",
-          "/usr/lib/systemd/system",
-          "/lib/systemd/system",
-        ]) {
-          for (const svc of await scanSystemdDir({
-            dir,
-            scope: "system",
-          })) {
-            push(svc);
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const prefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+        const serviceDir = path.join(prefix, "var", "service");
+        let entries: string[] = [];
+        try {
+          entries = await fs.readdir(serviceDir);
+        } catch {
+          // ignore
+        }
+        for (const entry of entries) {
+          if (isIgnoredSystemdName(entry)) continue;
+          const fullPath = path.join(serviceDir, entry);
+          const runFile = path.join(fullPath, "run");
+          let contents = "";
+          try {
+            contents = await fs.readFile(runFile, "utf8");
+          } catch {
+            continue;
+          }
+          if (!containsMarker(contents)) continue;
+          push({
+            platform: "android",
+            label: entry,
+            detail: `run: ${runFile}`,
+            scope: "user",
+          });
+        }
+      } else {
+        const home = resolveHomeDir(env);
+        const userDir = path.join(home, ".config", "systemd", "user");
+        for (const svc of await scanSystemdDir({
+          dir: userDir,
+          scope: "user",
+        })) {
+          push(svc);
+        }
+        if (opts.deep) {
+          for (const dir of [
+            "/etc/systemd/system",
+            "/usr/lib/systemd/system",
+            "/lib/systemd/system",
+          ]) {
+            for (const svc of await scanSystemdDir({
+              dir,
+              scope: "system",
+            })) {
+              push(svc);
+            }
           }
         }
       }

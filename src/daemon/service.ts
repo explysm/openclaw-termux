@@ -102,10 +102,10 @@ export function resolveGatewayService(): GatewayService {
     };
   }
 
-  if (process.platform === "linux") {
+  if (process.platform === "linux" || process.platform === "android") {
     // Optimized for Termux: use runit-based termux-services.
     // Fall back to systemd only if explicitly preferred or if on a non-Termux system where systemd exists.
-    const isTermux = Boolean(process.env.TERMUX_VERSION);
+    const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
     if (isTermux) {
       return {
         label: "Termux Service",

@@ -454,9 +454,12 @@ export async function discoverGatewayBeacons(
     .map((d) => (d.endsWith(".") ? d : `${d}.`));
 
   try {
-    if (platform === "darwin") {
+    if (platform === "darwin" || platform === "android") {
       const perDomain = await Promise.allSettled(
-        domains.map(async (domain) => await discoverViaDnsSd(domain, timeoutMs, run)),
+        domains.map(async (domain) => {
+          if (platform === "darwin") return await discoverViaDnsSd(domain, timeoutMs, run);
+          return await discoverViaAvahi(domain, timeoutMs, run);
+        }),
       );
       const discovered = perDomain.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 

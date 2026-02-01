@@ -83,7 +83,7 @@ export async function noteMacLaunchctlGatewayEnvOverrides(
 }
 
 export async function noteTermuxOptimizationIssues() {
-  if (!Boolean(process.env.TERMUX_VERSION)) return;
+  if (!Boolean(process.env.TERMUX_VERSION) && process.platform !== "android") return;
 
   const warnings: string[] = [];
 

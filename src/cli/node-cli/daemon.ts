@@ -56,6 +56,14 @@ function renderNodeServiceStartHints(): string[] {
       ];
     case "linux":
       return [...base, `systemctl --user start ${resolveNodeSystemdServiceName()}.service`];
+    case "android": {
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const unit = resolveNodeSystemdServiceName();
+        return [...base, `sv up ${unit}`];
+      }
+      return base;
+    }
     case "win32":
       return [...base, `schtasks /Run /TN "${resolveNodeWindowsTaskName()}"`];
     default:
@@ -71,8 +79,13 @@ function buildNodeRuntimeHints(env: NodeJS.ProcessEnv = process.env): string[] {
       `Launchd stderr (if installed): ${logs.stderrPath}`,
     ];
   }
-  if (process.platform === "linux") {
+  if (process.platform === "linux" || process.platform === "android") {
+    const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
     const unit = resolveNodeSystemdServiceName();
+    if (isTermux) {
+      const prefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+      return [`Logs: ${prefix}/var/service/${unit}/log/current`];
+    }
     return [`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`];
   }
   if (process.platform === "win32") {
@@ -305,7 +318,7 @@ export async function runNodeDaemonStart(opts: NodeDaemonLifecycleOptions = {}) 
   }
   if (!loaded) {
     let hints = renderNodeServiceStartHints();
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       const systemdAvailable = await isSystemdUserServiceAvailable().catch(() => false);
       if (!systemdAvailable) {
         hints = [...hints, ...renderSystemdUnavailableHints({ wsl: await isWSL() })];
@@ -382,7 +395,7 @@ export async function runNodeDaemonRestart(opts: NodeDaemonLifecycleOptions = {}
   }
   if (!loaded) {
     let hints = renderNodeServiceStartHints();
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       const systemdAvailable = await isSystemdUserServiceAvailable().catch(() => false);
       if (!systemdAvailable) {
         hints = [...hints, ...renderSystemdUnavailableHints({ wsl: await isWSL() })];

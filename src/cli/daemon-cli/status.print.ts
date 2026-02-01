@@ -201,7 +201,8 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
   }
 
   const systemdUnavailable =
-    process.platform === "linux" && isSystemdUnavailableDetail(service.runtime?.detail);
+    (process.platform === "linux" || process.platform === "android") &&
+    isSystemdUnavailableDetail(service.runtime?.detail);
   if (systemdUnavailable) {
     defaultRuntime.error(errorText("systemd user services unavailable."));
     for (const hint of renderSystemdUnavailableHints({ wsl: isWSLEnv() })) {
@@ -271,12 +272,18 @@ export function printDaemonStatus(status: DaemonStatus, opts: { json: boolean })
     if (status.lastError) {
       defaultRuntime.error(`${errorText("Last gateway error:")} ${status.lastError}`);
     }
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       const env = (service.command?.environment ?? process.env) as NodeJS.ProcessEnv;
       const unit = resolveGatewaySystemdServiceName(env.CLAWDBOT_PROFILE);
-      defaultRuntime.error(
-        errorText(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`),
-      );
+      const isTermux = Boolean(process.env.TERMUX_VERSION) || process.platform === "android";
+      if (isTermux) {
+        const prefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+        defaultRuntime.error(errorText(`Logs: ${prefix}/var/service/${unit}/log/current`));
+      } else {
+        defaultRuntime.error(
+          errorText(`Logs: journalctl --user -u ${unit}.service -n 200 --no-pager`),
+        );
+      }
     } else if (process.platform === "darwin") {
       const logs = resolveGatewayLogPaths(
         (service.command?.environment ?? process.env) as NodeJS.ProcessEnv,

@@ -36,7 +36,7 @@ function buildSystemNodeCandidates(
   if (platform === "darwin") {
     return ["/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node"];
   }
-  if (platform === "linux") {
+  if (platform === "linux" || platform === "android") {
     return [
       "/data/data/com.termux/files/usr/bin/node",
       "/usr/local/bin/node",

@@ -200,7 +200,7 @@ export async function launchClawdChrome(
       args.push("--no-sandbox");
       args.push("--disable-setuid-sandbox");
     }
-    if (process.platform === "linux") {
+    if (process.platform === "linux" || process.platform === "android") {
       args.push("--disable-dev-shm-usage");
     }
 

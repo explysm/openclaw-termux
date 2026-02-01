@@ -135,7 +135,7 @@ export async function resolveBrowserOpenCommand(): Promise<BrowserOpenCommand> {
     return hasOpen ? { argv: ["open"], command: "open" } : { argv: null, reason: "missing-open" };
   }
 
-  if (platform === "linux") {
+  if (platform === "linux" || platform === "android") {
     const wsl = await isWSL();
     if (isTermux) {
       const hasTermuxOpenUrl = await detectBinary("termux-open-url");

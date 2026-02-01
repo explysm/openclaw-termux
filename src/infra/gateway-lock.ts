@@ -114,7 +114,7 @@ function resolveGatewayOwnerStatus(
   platform: NodeJS.Platform,
 ): LockOwnerStatus {
   if (!isAlive(pid)) return "dead";
-  if (platform !== "linux") return "alive";
+  if (platform !== "linux" && platform !== "android") return "alive";
 
   const payloadStartTime = payload?.startTime;
   if (Number.isFinite(payloadStartTime)) {
@@ -181,7 +181,8 @@ export async function acquireGatewayLock(
   while (Date.now() - startedAt < timeoutMs) {
     try {
       const handle = await fs.open(lockPath, "wx");
-      const startTime = platform === "linux" ? readLinuxStartTime(process.pid) : null;
+      const startTime =
+        platform === "linux" || platform === "android" ? readLinuxStartTime(process.pid) : null;
       const payload: LockPayload = {
         pid: process.pid,
         createdAt: new Date().toISOString(),
