@@ -49,6 +49,7 @@ moltbot gateway --port 18789 --verbose
 
 #### Setting up on a "server phone"?
 Go to [explysm/OpenClaw-Termux-Android](https://github.com/explysm/openclaw-termux-android/releases) and download the latest apk for a experimental "Ui Wrapper."
+
 (although it doesn't have that much of a benefit compared to straight termux.)
 ---
 
