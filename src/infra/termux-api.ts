@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import { runCommandWithTimeout } from "../process/exec.js";
+
 /**
  * Checks if we are running in a Termux environment.
  */
@@ -75,4 +77,38 @@ export async function termuxToast(message: string, short = true): Promise<boolea
       resolve(false);
     });
   });
+}
+
+/**
+ * Gets the battery status using termux-battery-status.
+ */
+export async function getTermuxBatteryStatus(): Promise<any | null> {
+  if (!isTermux()) return null;
+
+  try {
+    const result = await runCommandWithTimeout(["termux-battery-status"], 5000);
+    if (result.code === 0) {
+      return JSON.parse(result.stdout);
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null;
+}
+
+/**
+ * Gets the clipboard content using termux-clipboard-get.
+ */
+export async function getTermuxClipboard(): Promise<string | null> {
+  if (!isTermux()) return null;
+
+  try {
+    const result = await runCommandWithTimeout(["termux-clipboard-get"], 5000);
+    if (result.code === 0) {
+      return result.stdout.trim();
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null;
 }

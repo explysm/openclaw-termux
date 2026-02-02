@@ -8,7 +8,7 @@ import {
   complete,
   type Model,
 } from "@mariozechner/pi-ai";
-import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
+import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 
 import type { MoltbotConfig } from "../../config/config.js";
@@ -233,8 +233,8 @@ async function runImagePrompt(params: {
     : undefined;
 
   await ensureMoltbotModelsJson(effectiveCfg, params.agentDir);
-  const authStorage = discoverAuthStorage(params.agentDir);
-  const modelRegistry = discoverModels(authStorage, params.agentDir);
+  const authStorage = new AuthStorage(params.agentDir);
+  const modelRegistry = new ModelRegistry(authStorage, params.agentDir);
 
   const result = await runWithImageModelFallback({
     cfg: effectiveCfg,

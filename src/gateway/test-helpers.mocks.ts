@@ -152,10 +152,15 @@ const hoisted = vi.hoisted(() => ({
     discoverCalls: 0,
     models: [] as Array<{
       id: string;
-      name?: string;
+      name: string;
       provider: string;
-      contextWindow?: number;
-      reasoning?: boolean;
+      api: string;
+      baseUrl: string;
+      reasoning: boolean;
+      input: Array<"text" | "image">;
+      cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
+      contextWindow: number;
+      maxTokens: number;
     }>,
   },
   cronIsolatedRun: vi.fn(async () => ({ status: "ok", summary: "ok" })),
@@ -234,12 +239,21 @@ vi.mock("@mariozechner/pi-coding-agent", async () => {
 
   return {
     ...actual,
-    discoverModels: (...args: unknown[]) => {
-      if (!piSdkMock.enabled) {
-        return (actual.discoverModels as (...args: unknown[]) => unknown)(...args);
+    ModelRegistry: class extends actual.ModelRegistry {
+      getAll() {
+        if (piSdkMock.enabled) {
+          piSdkMock.discoverCalls += 1;
+          return piSdkMock.models as any;
+        }
+        return super.getAll();
       }
-      piSdkMock.discoverCalls += 1;
-      return piSdkMock.models;
+      getAvailable() {
+        if (piSdkMock.enabled) {
+          piSdkMock.discoverCalls += 1;
+          return piSdkMock.models as any;
+        }
+        return super.getAvailable();
+      }
     },
   };
 });

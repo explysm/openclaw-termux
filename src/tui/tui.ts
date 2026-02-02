@@ -8,6 +8,7 @@ import {
 } from "@mariozechner/pi-tui";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
+import { getTermuxBatteryStatus, isTermux } from "../infra/termux-api.js";
 import {
   buildAgentMainSessionKey,
   normalizeAgentId,
@@ -93,6 +94,7 @@ export async function runTui(opts: TuiOptions) {
   let wasDisconnected = false;
   let toolsExpanded = false;
   let showThinking = false;
+  let batteryInfo: string | null = null;
 
   const deliverDefault = opts.deliver ?? false;
   const autoMessage = opts.message?.trim();
@@ -285,13 +287,15 @@ export async function runTui(opts: TuiOptions) {
 
   currentSessionKey = resolveSessionKey(initialSessionInput);
 
+  const isNarrow = () => (process.stdout.columns || 80) < 60;
+
   const updateHeader = () => {
+    const narrow = isNarrow();
     const sessionLabel = formatSessionKey(currentSessionKey);
     const agentLabel = formatAgentLabel(currentAgentId);
+    const title = narrow ? "moltbot" : "moltbot tui";
     header.setText(
-      theme.header(
-        `moltbot tui - ${client.connection.url} - agent ${agentLabel} - session ${sessionLabel}`,
-      ),
+      theme.header(`${title} - agent ${agentLabel} - session ${sessionLabel}`),
     );
   };
 
@@ -438,32 +442,51 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const updateFooter = () => {
+    const narrow = isNarrow();
     const sessionKeyLabel = formatSessionKey(currentSessionKey);
     const sessionLabel = sessionInfo.displayName
-      ? `${sessionKeyLabel} (${sessionInfo.displayName})`
+      ? narrow
+        ? sessionInfo.displayName
+        : `${sessionKeyLabel} (${sessionInfo.displayName})`
       : sessionKeyLabel;
-    const agentLabel = formatAgentLabel(currentAgentId);
+    const agentLabel = narrow ? currentAgentId : formatAgentLabel(currentAgentId);
     const modelLabel = sessionInfo.model
       ? sessionInfo.modelProvider
         ? `${sessionInfo.modelProvider}/${sessionInfo.model}`
         : sessionInfo.model
-      : "unknown";
+      : narrow
+        ? null
+        : "unknown";
+
     const tokens = formatTokens(sessionInfo.totalTokens ?? null, sessionInfo.contextTokens ?? null);
     const think = sessionInfo.thinkingLevel ?? "off";
     const verbose = sessionInfo.verboseLevel ?? "off";
     const reasoning = sessionInfo.reasoningLevel ?? "off";
     const reasoningLabel =
       reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
+
     const footerParts = [
-      `agent ${agentLabel}`,
+      narrow ? null : `agent ${agentLabel}`,
       `session ${sessionLabel}`,
       modelLabel,
+      batteryInfo,
       think !== "off" ? `think ${think}` : null,
       verbose !== "off" ? `verbose ${verbose}` : null,
       reasoningLabel,
       tokens,
     ].filter(Boolean);
     footer.setText(theme.dim(footerParts.join(" | ")));
+  };
+
+  const updateBatteryStatus = async () => {
+    if (!isTermux()) return;
+    const status = await getTermuxBatteryStatus();
+    if (status) {
+      const isCharging = status.status !== "DISCHARGING";
+      batteryInfo = `${status.percentage}%${isCharging ? "⚡" : ""}`;
+      updateFooter();
+      tui.requestRender();
+    }
   };
 
   const { openOverlay, closeOverlay } = createOverlayHandlers(tui, editor);
@@ -517,6 +540,7 @@ export async function runTui(opts: TuiOptions) {
       abortActive,
       setActivityStatus,
       formatSessionKey,
+      editor,
     });
 
   const { runLocalShellLine } = createLocalShellRunner({
@@ -622,6 +646,16 @@ export async function runTui(opts: TuiOptions) {
   updateHeader();
   setConnectionStatus("connecting");
   updateFooter();
+  void updateBatteryStatus();
+  const batteryInterval = setInterval(updateBatteryStatus, 60000);
+
   tui.start();
   client.start();
+
+  // Cleanup
+  const originalStop = tui.stop.bind(tui);
+  tui.stop = () => {
+    clearInterval(batteryInterval);
+    originalStop();
+  };
 }

@@ -78,10 +78,53 @@ export function withTimeout(signal: AbortSignal | undefined, timeoutMs: number):
   return controller.signal;
 }
 
-export async function readResponseText(res: Response): Promise<string> {
-  try {
-    return await res.text();
-  } catch {
-    return "";
+export async function readResponseText(res: Response, maxBytes?: number): Promise<string> {
+  if (maxBytes === undefined) {
+    try {
+      return await res.text();
+    } catch {
+      return "";
+    }
   }
+
+  const body = res.body;
+  if (!body) return "";
+
+  // @ts-ignore - ReadableStream might not have getReader in all environments but present in Node 22
+  const reader = typeof body.getReader === "function" ? body.getReader() : null;
+  if (!reader) {
+    try {
+      const text = await res.text();
+      return text.slice(0, maxBytes);
+    } catch {
+      return "";
+    }
+  }
+
+  let totalBytes = 0;
+  const chunks: Uint8Array[] = [];
+  try {
+    while (totalBytes < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        const remaining = maxBytes - totalBytes;
+        if (value.length > remaining) {
+          chunks.push(value.slice(0, remaining));
+          totalBytes += remaining;
+          void reader.cancel();
+          break;
+        } else {
+          chunks.push(value);
+          totalBytes += value.length;
+        }
+      }
+    }
+  } catch (err) {
+    // ignore read errors
+  } finally {
+    reader.releaseLock();
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
 }

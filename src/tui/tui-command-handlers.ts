@@ -4,10 +4,12 @@ import {
   normalizeUsageDisplay,
   resolveResponseUsageMode,
 } from "../auto-reply/thinking.js";
+import { getTermuxClipboard, isTermux } from "../infra/termux-api.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { formatRelativeTime } from "../utils/time-format.js";
 import { helpText, parseCommand } from "./commands.js";
 import type { ChatLog } from "./components/chat-log.js";
+import type { CustomEditor } from "./components/custom-editor.js";
 import {
   createFilterableSelectList,
   createSearchableSelectList,
@@ -38,6 +40,7 @@ type CommandHandlerContext = {
   abortActive: () => Promise<void>;
   setActivityStatus: (text: string) => void;
   formatSessionKey: (key: string) => string;
+  editor: CustomEditor;
 };
 
 export function createCommandHandlers(context: CommandHandlerContext) {
@@ -57,6 +60,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     abortActive,
     setActivityStatus,
     formatSessionKey,
+    editor,
   } = context;
 
   const setAgent = async (id: string) => {
@@ -419,6 +423,24 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           await loadHistory();
         } catch (err) {
           chatLog.addSystem(`reset failed: ${String(err)}`);
+        }
+        break;
+      case "paste":
+        if (!isTermux()) {
+          chatLog.addSystem("/paste is only supported on Termux");
+          break;
+        }
+        try {
+          const text = await getTermuxClipboard();
+          if (text) {
+            const current = editor.getText();
+            editor.setText(current + text);
+            setActivityStatus("pasted from clipboard");
+          } else {
+            chatLog.addSystem("clipboard is empty");
+          }
+        } catch (err) {
+          chatLog.addSystem(`paste failed: ${String(err)}`);
         }
         break;
       case "abort":

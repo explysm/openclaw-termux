@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import type { Api, Model } from "@mariozechner/pi-ai";
-import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
+import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import { enqueueCommandInLane } from "../../process/command-queue.js";
 import { resolveUserPath } from "../../utils.js";
@@ -73,8 +73,8 @@ function scrubAnthropicRefusalMagic(prompt: string): string {
 type ResolvedModelResult = {
   model?: Model<Api> & { compat?: ModelCompatConfig };
   error?: string;
-  authStorage: ReturnType<typeof discoverAuthStorage>;
-  modelRegistry: ReturnType<typeof discoverModels>;
+  authStorage: AuthStorage;
+  modelRegistry: ModelRegistry;
 };
 
 export async function runEmbeddedPiAgent(

@@ -196,11 +196,46 @@ export async function fetchWithGuard(params: {
           }
         }
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (buffer.byteLength > params.maxBytes) {
-          throw new Error(
-            `Content too large: ${buffer.byteLength} bytes (limit: ${params.maxBytes} bytes)`,
-          );
+        const body = response.body;
+        if (!body) {
+          throw new Error("Empty response body");
+        }
+
+        // Use streaming read to enforce maxBytes limit without reading everything into memory first.
+        // @ts-ignore - ReadableStream might not have getReader in all environments but present in Node 22
+        const reader = typeof body.getReader === "function" ? body.getReader() : null;
+        let buffer: Buffer;
+
+        if (reader) {
+          let totalBytes = 0;
+          const chunks: Uint8Array[] = [];
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) {
+                totalBytes += value.length;
+                if (totalBytes > params.maxBytes) {
+                  void reader.cancel();
+                  throw new Error(
+                    `Content too large: ${totalBytes} bytes (limit: ${params.maxBytes} bytes)`,
+                  );
+                }
+                chunks.push(value);
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          buffer = Buffer.concat(chunks);
+        } else {
+          // Fallback if getReader is not available
+          buffer = Buffer.from(await response.arrayBuffer());
+          if (buffer.byteLength > params.maxBytes) {
+            throw new Error(
+              `Content too large: ${buffer.byteLength} bytes (limit: ${params.maxBytes} bytes)`,
+            );
+          }
         }
 
         const contentType = response.headers.get("content-type") || undefined;

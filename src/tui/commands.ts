@@ -114,6 +114,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
     { name: "abort", description: "Abort active run" },
     { name: "new", description: "Reset the session" },
     { name: "reset", description: "Reset the session" },
+    { name: "paste", description: "Paste from system clipboard (Termux)" },
     { name: "settings", description: "Open settings" },
     { name: "exit", description: "Exit the TUI" },
     { name: "quit", description: "Exit the TUI" },

@@ -72,8 +72,8 @@ export async function loadModelCatalog(params?: {
       // will keep failing until restart).
       const piSdk = await importPiSdk();
       const agentDir = resolveMoltbotAgentDir();
-      const authStorage = piSdk.discoverAuthStorage(agentDir);
-      const registry = piSdk.discoverModels(authStorage, agentDir) as
+      const authStorage = new piSdk.AuthStorage(agentDir);
+      const registry = new piSdk.ModelRegistry(authStorage, agentDir) as
         | {
             getAll: () => Array<DiscoveredModel>;
           }

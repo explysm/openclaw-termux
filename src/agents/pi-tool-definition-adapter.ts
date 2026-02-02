@@ -8,6 +8,7 @@ import type { ClientToolDefinition } from "./pi-embedded-runner/run/params.js";
 import { logDebug, logError } from "../logger.js";
 import { normalizeToolName } from "./tool-policy.js";
 import { jsonResult } from "./tools/common.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 
 // biome-ignore lint/suspicious/noExplicitAny: TypeBox schema type from pi-agent-core uses a different module instance.
 type AnyAgentTool = AgentTool<any, unknown>;
@@ -36,14 +37,54 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
       execute: async (
         toolCallId,
         params,
-        onUpdate: AgentToolUpdateCallback<unknown> | undefined,
-        _ctx,
         signal,
+        onUpdate: AgentToolUpdateCallback<unknown> | undefined,
+        ctx,
       ): Promise<AgentToolResult<unknown>> => {
         // KNOWN: pi-coding-agent `ToolDefinition.execute` has a different signature/order
         // than pi-agent-core `AgentTool.execute`. This adapter keeps our existing tools intact.
+
+        const hookRunner = getGlobalHookRunner();
+        let effectiveParams = params;
+
+        // Try to resolve session info from ExtensionCommandContext if available
+        const sessionKey = (ctx as any)?.session?.sessionKey;
+        const agentId = (ctx as any)?.session?.agentId;
+
+        if (hookRunner?.hasHooks("before_tool_call")) {
+          try {
+            const hookResult = await hookRunner.runBeforeToolCall(
+              {
+                toolName: name,
+                toolCallId,
+                params: params as Record<string, unknown>,
+              },
+              {
+                agentId,
+                sessionKey,
+                toolName: name,
+              },
+            );
+
+            if (hookResult?.block) {
+              return jsonResult({
+                status: "error",
+                tool: normalizedName,
+                error: hookResult.blockReason ?? "Tool call blocked by plugin",
+              });
+            }
+
+            if (hookResult?.params) {
+              effectiveParams = hookResult.params as Record<string, unknown>;
+            }
+          } catch (err) {
+            logError(`[tools] before_tool_call hook failed: ${String(err)}`);
+          }
+        }
+
+        let result: AgentToolResult<unknown>;
         try {
-          return await tool.execute(toolCallId, params, signal, onUpdate);
+          result = await tool.execute(toolCallId, effectiveParams, signal, onUpdate);
         } catch (err) {
           if (signal?.aborted) throw err;
           const name =
@@ -56,12 +97,34 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
             logDebug(`tools: ${normalizedName} failed stack:\n${described.stack}`);
           }
           logError(`[tools] ${normalizedName} failed: ${described.message}`);
-          return jsonResult({
+          result = jsonResult({
             status: "error",
             tool: normalizedName,
             error: described.message,
           });
         }
+
+        if (hookRunner?.hasHooks("after_tool_call")) {
+          try {
+            void hookRunner.runAfterToolCall(
+              {
+                toolName: name,
+                toolCallId,
+                params: effectiveParams as Record<string, unknown>,
+                result,
+              },
+              {
+                agentId,
+                sessionKey,
+                toolName: name,
+              },
+            );
+          } catch (err) {
+            logError(`[tools] after_tool_call hook failed: ${String(err)}`);
+          }
+        }
+
+        return result;
       },
     } satisfies ToolDefinition;
   });
@@ -83,9 +146,9 @@ export function toClientToolDefinitions(
       execute: async (
         toolCallId,
         params,
+        _signal,
         _onUpdate: AgentToolUpdateCallback<unknown> | undefined,
         _ctx,
-        _signal,
       ): Promise<AgentToolResult<unknown>> => {
         // Notify handler that a client tool was called
         if (onClientToolCall) {

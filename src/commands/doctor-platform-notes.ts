@@ -90,9 +90,15 @@ export async function noteTermuxOptimizationIssues() {
   try {
     await execFileAsync("which", ["termux-notification"]);
   } catch {
-    warnings.push(
-      "- termux-api not found. Install it for status notifications: pkg install termux-api",
-    );
+    warnings.push("- termux-api not found. Install it for system integration: pkg install termux-api");
+  }
+
+  if (warnings.length === 0) {
+    try {
+      await execFileAsync("which", ["termux-battery-status"]);
+    } catch {
+      warnings.push("- termux-api binaries missing. Reinstall: pkg install termux-api");
+    }
   }
 
   try {

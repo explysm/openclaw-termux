@@ -38,7 +38,7 @@ moltbot onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
 Moltbot does **not** override Anthropic’s default cache TTL unless you set it.
 This is **API-only**; subscription auth does not honor TTL settings.
 
-To set the TTL per model, use `cacheControlTtl` in the model `params`:
+To set the TTL per model, use `cacheRetention` in the model `params`:
 
 ```json5
 {
@@ -46,7 +46,7 @@ To set the TTL per model, use `cacheControlTtl` in the model `params`:
     defaults: {
       models: {
         "anthropic/claude-opus-4-5": {
-          params: { cacheControlTtl: "5m" } // or "1h"
+          params: { cacheRetention: "5m" } // or "1h"
         }
       }
     }

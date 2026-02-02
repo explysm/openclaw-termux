@@ -21,17 +21,17 @@ export function resolveExtraParams(params: {
   return modelConfig?.params ? { ...modelConfig.params } : undefined;
 }
 
-type CacheControlTtl = "5m" | "1h";
+type CacheRetention = "none" | "short" | "long";
 
-function resolveCacheControlTtl(
+function resolveCacheRetention(
   extraParams: Record<string, unknown> | undefined,
   provider: string,
   modelId: string,
-): CacheControlTtl | undefined {
-  const raw = extraParams?.cacheControlTtl;
-  if (raw !== "5m" && raw !== "1h") return undefined;
-  if (provider === "anthropic") return raw;
-  if (provider === "openrouter" && modelId.startsWith("anthropic/")) return raw;
+): CacheRetention | undefined {
+  const raw = extraParams?.cacheRetention;
+  if (raw === "5m" || raw === "short") return "short";
+  if (raw === "1h" || raw === "long") return "long";
+  if (raw === "none") return "none";
   return undefined;
 }
 
@@ -45,16 +45,16 @@ function createStreamFnWithExtraParams(
     return undefined;
   }
 
-  const streamParams: Partial<SimpleStreamOptions> & { cacheControlTtl?: CacheControlTtl } = {};
+  const streamParams: Partial<SimpleStreamOptions> & { cacheRetention?: CacheRetention } = {};
   if (typeof extraParams.temperature === "number") {
     streamParams.temperature = extraParams.temperature;
   }
   if (typeof extraParams.maxTokens === "number") {
     streamParams.maxTokens = extraParams.maxTokens;
   }
-  const cacheControlTtl = resolveCacheControlTtl(extraParams, provider, modelId);
-  if (cacheControlTtl) {
-    streamParams.cacheControlTtl = cacheControlTtl;
+  const cacheRetention = resolveCacheRetention(extraParams, provider, modelId);
+  if (cacheRetention) {
+    streamParams.cacheRetention = cacheRetention;
   }
 
   if (Object.keys(streamParams).length === 0) {

@@ -326,10 +326,10 @@ export function applyContextPruningDefaults(cfg: MoltbotConfig): MoltbotConfig {
       if (!parsed || parsed.provider !== "anthropic") continue;
       const current = entry ?? {};
       const params = (current as { params?: Record<string, unknown> }).params ?? {};
-      if (typeof params.cacheControlTtl === "string") continue;
+      if (typeof params.cacheRetention === "string") continue;
       nextModels[key] = {
         ...(current as Record<string, unknown>),
-        params: { ...params, cacheControlTtl: "1h" },
+        params: { ...params, cacheRetention: "1h" },
       };
       modelsMutated = true;
     }
@@ -342,10 +342,10 @@ export function applyContextPruningDefaults(cfg: MoltbotConfig): MoltbotConfig {
         const entry = nextModels[key];
         const current = entry ?? {};
         const params = (current as { params?: Record<string, unknown> }).params ?? {};
-        if (typeof params.cacheControlTtl !== "string") {
+        if (typeof params.cacheRetention !== "string") {
           nextModels[key] = {
             ...(current as Record<string, unknown>),
-            params: { ...params, cacheControlTtl: "1h" },
+            params: { ...params, cacheRetention: "1h" },
           };
           modelsMutated = true;
         }

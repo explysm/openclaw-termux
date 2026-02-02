@@ -1,5 +1,8 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
-import { discoverAuthStorage, discoverModels } from "@mariozechner/pi-coding-agent";
+import {
+  AuthStorage,
+  ModelRegistry,
+} from "@mariozechner/pi-coding-agent";
 
 import type { MoltbotConfig } from "../../config/config.js";
 import type { ModelDefinitionConfig, ModelCompatConfig } from "../../config/types.js";
@@ -54,12 +57,12 @@ export function resolveModel(
 ): {
   model?: Model<Api>;
   error?: string;
-  authStorage: ReturnType<typeof discoverAuthStorage>;
-  modelRegistry: ReturnType<typeof discoverModels>;
+  authStorage: AuthStorage;
+  modelRegistry: ModelRegistry;
 } {
   const resolvedAgentDir = agentDir ?? resolveMoltbotAgentDir();
-  const authStorage = discoverAuthStorage(resolvedAgentDir);
-  const modelRegistry = discoverModels(authStorage, resolvedAgentDir);
+  const authStorage = new AuthStorage(resolvedAgentDir);
+  const modelRegistry = new ModelRegistry(authStorage, resolvedAgentDir);
   const model = modelRegistry.find(provider, modelId) as Model<Api> | null;
   if (!model) {
     const providers = cfg?.models?.providers ?? {};

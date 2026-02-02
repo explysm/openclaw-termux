@@ -171,6 +171,7 @@ function isRedirectStatus(status: number): boolean {
 async function fetchWithRedirects(params: {
   url: string;
   maxRedirects: number;
+  maxBytes: number;
   timeoutSeconds: number;
   userAgent: string;
 }): Promise<{ response: Response; finalUrl: string; dispatcher: Dispatcher }> {
@@ -208,6 +209,15 @@ async function fetchWithRedirects(params: {
     } catch (err) {
       await closeDispatcher(dispatcher);
       throw err;
+    }
+
+    const contentLength = res.headers.get("content-length");
+    if (contentLength) {
+      const size = parseInt(contentLength, 10);
+      if (size > params.maxBytes) {
+        await closeDispatcher(dispatcher);
+        throw new Error(`Content too large: ${size} bytes (limit: ${params.maxBytes} bytes)`);
+      }
     }
 
     if (isRedirectStatus(res.status)) {
@@ -367,10 +377,12 @@ async function runWebFetch(params: {
   let res: Response;
   let dispatcher: Dispatcher | null = null;
   let finalUrl = params.url;
+  const maxBytes = params.maxChars * 10; // Allow buffer for HTML/headers
   try {
     const result = await fetchWithRedirects({
       url: params.url,
       maxRedirects: params.maxRedirects,
+      maxBytes,
       timeoutSeconds: params.timeoutSeconds,
       userAgent: params.userAgent,
     });
@@ -448,7 +460,7 @@ async function runWebFetch(params: {
         writeCache(FETCH_CACHE, cacheKey, payload, params.cacheTtlMs);
         return payload;
       }
-      const rawDetail = await readResponseText(res);
+      const rawDetail = await readResponseText(res, DEFAULT_ERROR_MAX_CHARS * 2);
       const detail = formatWebFetchErrorDetail({
         detail: rawDetail,
         contentType: res.headers.get("content-type"),
@@ -458,7 +470,7 @@ async function runWebFetch(params: {
     }
 
     const contentType = res.headers.get("content-type") ?? "application/octet-stream";
-    const body = await readResponseText(res);
+    const body = await readResponseText(res, maxBytes);
 
     let title: string | undefined;
     let extractor = "raw";

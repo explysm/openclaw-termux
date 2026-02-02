@@ -27,7 +27,7 @@ export class SearchableSelectList implements Component {
   private maxVisible: number;
   private theme: SearchableSelectListTheme;
   private searchInput: Input;
-  private regexCache = new Map<string, RegExp>();
+  private combinedRegexCache: { query: string; regex: RegExp | null } | null = null;
 
   onSelect?: (item: SelectItem) => void;
   onCancel?: () => void;
@@ -41,12 +41,24 @@ export class SearchableSelectList implements Component {
     this.searchInput = new Input();
   }
 
-  private getCachedRegex(pattern: string): RegExp {
-    let regex = this.regexCache.get(pattern);
-    if (!regex) {
-      regex = new RegExp(this.escapeRegex(pattern), "gi");
-      this.regexCache.set(pattern, regex);
+  private getCombinedRegex(query: string): RegExp | null {
+    if (this.combinedRegexCache?.query === query) return this.combinedRegexCache.regex;
+
+    const tokens = query
+      .trim()
+      .split(/\s+/)
+      .map((token) => token.toLowerCase())
+      .filter((token) => token.length > 0);
+
+    if (tokens.length === 0) {
+      this.combinedRegexCache = { query, regex: null };
+      return null;
     }
+
+    const uniqueTokens = Array.from(new Set(tokens)).sort((a, b) => b.length - a.length);
+    const pattern = uniqueTokens.map((t) => this.escapeRegex(t)).join("|");
+    const regex = new RegExp(`(${pattern})`, "gi");
+    this.combinedRegexCache = { query, regex };
     return regex;
   }
 
@@ -129,20 +141,22 @@ export class SearchableSelectList implements Component {
   }
 
   private highlightMatch(text: string, query: string): string {
-    const tokens = query
-      .trim()
-      .split(/\s+/)
-      .map((token) => token.toLowerCase())
-      .filter((token) => token.length > 0);
-    if (tokens.length === 0) return text;
+    const regex = this.getCombinedRegex(query);
+    if (!regex) return text;
 
-    const uniqueTokens = Array.from(new Set(tokens)).sort((a, b) => b.length - a.length);
-    let result = text;
-    for (const token of uniqueTokens) {
-      const regex = this.getCachedRegex(token);
-      result = result.replace(regex, (match) => this.theme.matchHighlight(match));
-    }
-    return result;
+    // Split by ANSI escape sequences to avoid matching inside colors.
+    // This prevents digits in color codes from being matched and corrupted.
+    const parts = text.split(/(\u001b\[[0-9;]*[mK])/g);
+    return parts
+      .map((part, i) => {
+        // Even indices are text, odd indices are ANSI codes
+        if (i % 2 === 0) {
+          return part.replace(regex, (match) => this.theme.matchHighlight(match));
+        } else {
+          return part;
+        }
+      })
+      .join("");
   }
 
   setSelectedIndex(index: number) {
